@@ -137,14 +137,6 @@ pVocMap arg = case getRequiredArg arg VocabularyMapping of
                 "majMin"    -> majMinEq
                 "root"      -> rootOnlyEq
                 m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)
-
--- data VocMap = Mirex2010 | Root | MajMin | Seventh | MajMinInv | SevInv
-
--- | Returns the vocabulary mapping function belonging to a certain 'VocMap'
--- vocMapFunc :: VocMap -> 
--- vocMapFunc Mirex2010 = mirex2010
--- vocMapFunc MajMin    = majMinEq
--- vocMapFunc Root      = rootOnlyEq
               
 toFileName :: FilePath -> Year -> Collection -> Team -> Int -> FilePath
 toFileName dir y c t i = dir </> show y </> show c </> t </> toID where

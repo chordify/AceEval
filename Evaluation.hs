@@ -30,7 +30,6 @@ module Evaluation (
     , rootOnlyEq
     , majMinEq
     , triadEq
-    , chordClassEq
     , mirex2010
     -- * Small Evaluation Logic
     , EqIgnore
@@ -193,7 +192,7 @@ makeGT = map (fmap RefLab)
 -- unWrapGT = map (fmap refLab)
 
 rootOnlyEq :: RefLab -> ChordLabel -> EqIgnore
-rootOnlyEq gt test = chordRoot (refLab gt) `rootEq` chordRoot test 
+rootOnlyEq gt test = chordCompare rootEq (\_ _ -> Equal) gt test -- Ignore all but root
 
 -- | enharmonic equality for 'Root' 'Note's, N == N, X == X, and G# == Ab
 rootEq :: Root -> Root -> EqIgnore
@@ -217,17 +216,12 @@ rootEq a b = toPitchClass a ==* toPitchClass b
 -- >>> NotEq
 --
 majMinEq :: RefLab -> ChordLabel -> EqIgnore
-majMinEq (RefLab NoChord)    NoChord    = Equal
-majMinEq (RefLab UndefChord) _          = Ignore
-majMinEq _                   UndefChord = NotEq
-majMinEq (RefLab NoChord)    _          = NotEq
-majMinEq _                   NoChord    = NotEq
-majMinEq (RefLab gt)         test       = chordRoot gt  `rootEq` chordRoot test
-                                      &&* toTriad   gt  `majMin` toTriad   test 
+majMinEq gt test = chordCompare rootEq majMin gt test
    
   -- ignore the NoClass and only return True in case of maj/maj and min/min
-  where majMin :: Triad -> Triad -> EqIgnore
-        majMin x y = case (toMajMin x, toMajMin y) of
+  where majMin :: RefLab -> ChordLabel -> EqIgnore
+        majMin x y = case ( toMajMin . toTriad $ refLab x
+                          , toMajMin $ toTriad          y ) of
                        (MajClass, MajClass) -> Equal
                        (MajClass, MinClass) -> NotEq
                        (MinClass, MinClass) -> Equal
@@ -248,15 +242,28 @@ triadEq a b =   chordRoot a  `rootEq` chordRoot b &&* triadEqI a b where
                    (_      , NoTriad) -> Ignore
                    (tx     , ty     ) -> tx ==* ty 
 
--- | Returns True if both 'ChordLabel's are equal at the chord class level: 
--- A chord is classified as being major, minor, dominant seventh, or diminished
--- seventh. 'chordClassEq' only returns True if the class of compared chords
--- is the same. "None Chords" match only with other None Chords and 
--- with nothing else
-chordClassEq :: ChordLabel -> ChordLabel -> EqIgnore
-chordClassEq a b =   chordRoot   a `rootEq` chordRoot   b
-                 &&* toClassType a  ==*     toClassType b 
-
+-- compares the 'NoChord' and 'UndefChord' cases, such that this does not have
+-- to be replicated in all Eq's
+chordCompare :: (Root -> Root -> EqIgnore) 
+             -> (RefLab -> ChordLabel -> EqIgnore) 
+             ->  RefLab -> ChordLabel -> EqIgnore
+-- chordCompare _   _   (RefLab NoChord)    NoChord    = Equal
+-- chordCompare _   _   (RefLab UndefChord) _          = Ignore
+-- chordCompare _   _   _                   UndefChord = NotEq
+-- chordCompare _   _   (RefLab NoChord)    _          = NotEq
+-- chordCompare _   _   _                   NoChord    = NotEq
+-- chordCompare rEq cEq a                   b  =   chordRoot a `rEq` chordRoot b
+                                            -- &&*           a `cEq`           b
+chordCompare rEq cEq rf t = case (refLab rf, t) of
+                             (NoChord,    NoChord   ) -> Equal
+                             (UndefChord, NoChord   ) -> Ignore
+                             (UndefChord, UndefChord) -> NotEq
+                             (_         , UndefChord) -> NotEq
+                             (NoChord   , _         ) -> NotEq
+                             (gt, _) ->   chordRoot gt `rEq` chordRoot t
+                                     &&*            rf `cEq`           t
+                 
+                 
 mirex2010 :: RefLab -> ChordLabel -> EqIgnore
 mirex2010 (RefLab NoChord)    NoChord    = Equal
 mirex2010 (RefLab UndefChord) _          = NotEq -- Ignore
