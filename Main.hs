@@ -5,6 +5,8 @@ module Main where
 import System.Console.ParseArgs
 import ChordJSON
 import Evaluation
+import HarmTrace.Base.Chord       ( ChordLabel )
+import HarmTrace.Base.Time        ( Timed )
 import Control.Monad              ( void )
 import System.FilePath            ( (</>), (<.>) )
 import System.Directory           ( doesDirectoryExist )
@@ -12,7 +14,8 @@ import Text.Printf                ( printf )
 import Data.Maybe                 ( isJust )
 
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
-               | Collection | GroundTruthDir deriving (Eq, Ord, Show)
+               | Collection | GroundTruthDir | VocabularyMapping 
+               deriving (Eq, Ord, Show)
 
 myArgs :: [Arg MirexArgs]
 myArgs = [
@@ -57,7 +60,13 @@ myArgs = [
                  argName  = Just "id",
                  argData  = argDataOptional "int" ArgtypeInt,
                  argDesc  = "evaluates only a specific ID"
-               }                  
+               } 
+         , Arg { argIndex = VocabularyMapping,
+                 argAbbr  = Just 'v',
+                 argName  = Just "voc-map",
+                 argData  = argDataRequired "mapping" ArgtypeString,
+                 argDesc  = "Chord label comparison method (vocabulary mapping)"
+               }      
          ] 
 
 main :: IO ()
@@ -65,14 +74,15 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
           let c  = pCollection arg
               y  = pYear arg
               p  = pVerb arg pp
-              ef = overlapEval mirex2010 
-              -- ef = overlapEval majMinEq 
+              vm = pVocMap arg 
+              ef = overlapEval vm 
               pp = overlapRatio
+              
+              pEq :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
+              pEq a b = printOverlapEval vm a b >>= return . pp
+              
           case fileOrDir arg of
-            Left  f -> if isJust p then void $ evaluateMChordsVerb 
-                             (\a b -> printOverlapEval mirex2010 a b 
-                             -- (\a b -> printOverlapEval majMinEq a b 
-                                   >>= return . pp) f y c
+            Left  f -> if isJust p then void $ evaluateMChordsVerb pEq f y c
                                    else evaluateMChords ef pp f y c
             Right d -> do t <- pTeam arg d y c
                           void $ evaluateMirex ef weightOverlapRatio p t d y c 
@@ -120,6 +130,21 @@ pYear arg = case getRequiredArg arg MirexYear of
               "2011" -> Y2011
               "2012" -> Y2012
               m -> usageError arg ("unrecognised year: " ++ m)
+
+pVocMap :: Args MirexArgs -> RefLab -> ChordLabel -> EqIgnore
+pVocMap arg = case getRequiredArg arg VocabularyMapping of
+                "mirex2010" -> mirex2010
+                "majMin"    -> majMinEq
+                "root"      -> rootOnlyEq
+                m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)
+
+-- data VocMap = Mirex2010 | Root | MajMin | Seventh | MajMinInv | SevInv
+
+-- | Returns the vocabulary mapping function belonging to a certain 'VocMap'
+-- vocMapFunc :: VocMap -> 
+-- vocMapFunc Mirex2010 = mirex2010
+-- vocMapFunc MajMin    = majMinEq
+-- vocMapFunc Root      = rootOnlyEq
               
 toFileName :: FilePath -> Year -> Collection -> Team -> Int -> FilePath
 toFileName dir y c t i = dir </> show y </> show c </> t </> toID where

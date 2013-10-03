@@ -197,12 +197,7 @@ rootOnlyEq gt test = chordRoot (refLab gt) `rootEq` chordRoot test
 
 -- | enharmonic equality for 'Root' 'Note's, N == N, X == X, and G# == Ab
 rootEq :: Root -> Root -> EqIgnore
--- rootEq (Note Nothing N) (Note Nothing N) = Equal  -- two none roots
--- rootEq (Note Nothing X) _                = Ignore -- one unknown root in the GT
--- rootEq _               (Note Nothing X)  = NotEq  -- one unknown root in the MA
--- rootEq (Note Nothing N) _                = NotEq  -- one none root
--- rootEq _               (Note Nothing N)  = NotEq
-rootEq a               b                 = toPitchClass a ==* toPitchClass b
+rootEq a b = toPitchClass a ==* toPitchClass b
 
 -- | Compares a ground-truth 'ChordLabel' (first argument) to a test 
 -- 'ChordLabel' (second argument) and returns True if the 'Root's of 
@@ -339,6 +334,7 @@ sampleAt (t:ts) (c:cs)
   | otherwise     = sampleAt (t:ts) cs         
 
   -}
+-- TODO rename to chord symbol recall
   
 overlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
             -> [Timed RefLab] -> [Timed ChordLabel] 
