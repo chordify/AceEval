@@ -15,8 +15,8 @@
 
 module Evaluation (
     -- * Evaluation functions
-      relCorrectOverlap
-    , chordChangeRatio
+      -- relCorrectOverlap
+      chordChangeRatio
     , avgDistToOne
     , overlapEval
     , overlapRatio
@@ -41,17 +41,17 @@ module Evaluation (
     , (||*)
     -- * Displaying evaluations 
     -- , printChordRCO
-    , printRCO
+    -- , printRCO
     , printOverlapEval
     -- * Sampling 
-    , sample
+    -- , sample
   ) where
 
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
 
-import Data.List                 ( genericLength, intercalate, intersect )
-import Data.IntSet               ( size, intersection )
+import Data.List                 ( genericLength, intercalate )
+import Data.IntSet               ( IntSet, size, intersection, member )
 
 import Data.Foldable             ( foldrM )
 import Control.Monad.State       ( State, execState, modify )
@@ -270,20 +270,21 @@ mirex2010 (RefLab NoChord)    _          = NotEq
 mirex2010 _                   NoChord    = NotEq
 mirex2010 (RefLab gt)         test       = 
   let -- Replaced the bassnote by the first inversion (root note)      
-      removeBass :: ChordLabel -> ChordLabel
-      removeBass (Chord r sh add _b) = Chord r sh add (Note Nat I1)
+      -- removeBass :: ChordLabel -> ChordLabel
+      -- removeBass (Chord r sh add _b) = Chord r sh add (Note Nat I1)
 
-      sameInv :: ChordLabel -> ChordLabel -> Bool
-      sameInv (Chord _ _ _ (Note Nat I1)) 
-              (Chord _ _ _ (Note Nat I1)) = False
-      sameInv a b = bassPC a == bassPC b -- todo check for PC in i
-  
-      gtpc  = pc . toPitchClasses . removeBass $ gt
-      tstpc = pc . toPitchClasses . removeBass $ test
+      bassMatch :: IntSet -> ChordLabel -> Int
+      bassMatch pc (Chord _ _ _ (Note Nat I1)) = 0
+      bassMatch pc c | bassPC c `member` pc    = 1
+                     | otherwise               = 0
+                   
+      gtpc  = pc . toPitchClasses $ gt
+      tstpc = pc . toPitchClasses $ test
       
       i     = gtpc `intersection` tstpc
       p     = size i
-      p' = if sameInv gt test then succ p else p
+      p' = p + bassMatch gtpc test + bassMatch tstpc gt
+      
   in case (chordShorthand gt, chordShorthand test) of
       (Aug, _  ) -> p' >=* 2
       (Dim, _  ) -> p' >=* 2
@@ -292,7 +293,7 @@ mirex2010 (RefLab gt)         test       =
 --------------------------------------------------------------------------------
 -- Evaluation functions
 --------------------------------------------------------------------------------  
-  
+ {- 
 -- | Calculates the relative correct overlap, which is the recall
 -- of matching frames, and defined as the nr of matching frames (sampled at
 -- an 10 millisecond interval) divided by all frames. The first argument 
@@ -337,7 +338,7 @@ sampleAt (t:ts) (c:cs)
   | t <= offset c = getData c : sampleAt ts (c:cs)
   | otherwise     = sampleAt (t:ts) cs         
 
-  
+  -}
   
 overlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
             -> [Timed RefLab] -> [Timed ChordLabel] 
@@ -359,7 +360,7 @@ printOverlapEval eq gt test = mapM eval $ crossSegResetFst gt test where
                 return . fmap (const m) $ dat
 
 -- | Checks whether the first Timed element have the same onset, and applies
--- chrosSegment.
+-- chrossSegment.
 crossSegResetFst :: [Timed RefLab] -> [Timed ChordLabel] 
                  -> [Timed (RefLab, ChordLabel)]
 crossSegResetFst [] _ = []
@@ -444,6 +445,7 @@ printEqStr eqf str gt test =
      putStrLn . (str ++) . intercalate " " $ [show gt, showEqi eqi, show test]
      return eqi
    
+   {-
 -- | Calculates the relative correct overlap, which is the recall
 -- of matching frames, and defined as the nr of matching frames (sampled at
 -- an interval set in 'ChordTrack.Constants') divided by all frames.
@@ -458,3 +460,5 @@ printRCO eqi gt test =
          
      matches <- sequence $ zipWith3 pEq [0,displaySampleRate ..] samgt sam
      return (foldr countMatch 0 matches / maxCompare eqi samgt)
+     -}
+     
