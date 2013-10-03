@@ -29,7 +29,7 @@ module Evaluation (
     -- * Chord and key equality functions
     , rootOnlyEq
     , majMinEq
-    , triadEq
+    -- , triadEq
     , mirex2010
     -- * Small Evaluation Logic
     , EqIgnore
@@ -59,7 +59,7 @@ import Text.Printf               ( printf )
 --------------------------------------------------------------------------------
 --  Constants
 --------------------------------------------------------------------------------
-
+{-
 evaluationSampleRate, displaySampleRate :: NumData
 -- | The sample rate used in a normal (non-visual) comparison (in seconds).
 evaluationSampleRate = 0.01
@@ -67,7 +67,7 @@ evaluationSampleRate = 0.01
 -- ground-truth annotation. Often a higher sample rate is preferred. Although
 -- one uses precision, the visual result is easier to read.
 displaySampleRate    = 0.3
-
+-}
 --------------------------------------------------------------------------------
 -- A very small logic for comparing results including a wildcard (Ignore)
 --------------------------------------------------------------------------------
@@ -231,6 +231,7 @@ majMinEq gt test = chordCompare rootEq majMin gt test
                        -- cannot happen
                        _ -> error "majMin: unexpected chord class"
 
+                       {-
 -- | Returns True if both 'ChordLabel's are equal at the triad level: they are
 -- either moth major or both minor. "None Chords" match only with other "None
 -- Chords" and with nothing else
@@ -241,24 +242,19 @@ triadEq a b =   chordRoot a  `rootEq` chordRoot b &&* triadEqI a b where
                    (NoTriad, _      ) -> Ignore
                    (_      , NoTriad) -> Ignore
                    (tx     , ty     ) -> tx ==* ty 
-
+-}
+                   
 -- compares the 'NoChord' and 'UndefChord' cases, such that this does not have
 -- to be replicated in all Eq's
 chordCompare :: (Root -> Root -> EqIgnore) 
              -> (RefLab -> ChordLabel -> EqIgnore) 
              ->  RefLab -> ChordLabel -> EqIgnore
--- chordCompare _   _   (RefLab NoChord)    NoChord    = Equal
--- chordCompare _   _   (RefLab UndefChord) _          = Ignore
--- chordCompare _   _   _                   UndefChord = NotEq
--- chordCompare _   _   (RefLab NoChord)    _          = NotEq
--- chordCompare _   _   _                   NoChord    = NotEq
--- chordCompare rEq cEq a                   b  =   chordRoot a `rEq` chordRoot b
-                                            -- &&*           a `cEq`           b
 chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord,    NoChord   ) -> Equal
                              (UndefChord, NoChord   ) -> Ignore
-                             (UndefChord, UndefChord) -> NotEq
                              (_         , UndefChord) -> NotEq
+                             (UndefChord, _         ) -> NotEq
+                             (_         , NoChord   ) -> NotEq
                              (NoChord   , _         ) -> NotEq
                              (gt, _) ->   chordRoot gt `rEq` chordRoot t
                                      &&*            rf `cEq`           t
