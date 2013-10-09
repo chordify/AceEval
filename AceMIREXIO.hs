@@ -104,8 +104,10 @@ readMChords y c fp =
                        
 fillHoles :: MChords -> IO MChords
 fillHoles mc = do c  <- fill . chords $ mc
-                  -- gt <- mapM fill . groundTruth $ mc
-                  return mc { chords = c {-, groundTruth = gt -}} where
+                  gt <- case groundTruth mc of
+                          Nothing  -> return Nothing
+                          (Just g) -> fill g >>= return . Just
+                  return mc { chords = c, groundTruth = gt } where
   
   fill :: [Timed ChordLabel] -> IO [Timed ChordLabel]
   -- NB filterZeroLen should go somewhere else
