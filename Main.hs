@@ -69,6 +69,12 @@ myArgs = [
                  argData  = argDataRequired "mapping" ArgtypeString,
                  argDesc  = "Chord label comparison method (vocabulary mapping)"
                }      
+         -- , Arg { argIndex = Format,
+                 -- argAbbr  = Just 'f',
+                 -- argName  = Just "format",
+                 -- argData  = argDataDefaulted "format" ArgtypeString "lab",
+                 -- argDesc  = "The kind of input format (json|lab)"
+               -- } 
          ] 
 
 main :: IO ()
@@ -119,19 +125,10 @@ pTeam arg dir y c = case getArg arg Team of
                                                    ++ " does not exist")
             
 pCollection :: Args MirexArgs -> Collection
-pCollection arg = case getRequiredArg arg Collection of
-                    "bb"        -> Billboard
-                    "bs"        -> Beatles
-                    "Billboard" -> Billboard
-                    "Beatles"   -> Beatles
-                    m -> usageError arg ("unrecognised collection: " ++ m)
+pCollection arg = pCollection $ getRequiredArg arg Collection
                     
 pYear :: Args MirexArgs -> Year
-pYear arg = case getRequiredArg arg MirexYear of
-              "2010" -> Y2010
-              "2011" -> Y2011
-              "2012" -> Y2012
-              m -> usageError arg ("unrecognised year: " ++ m)
+pYear arg = pYear $ getRequiredArg arg MirexYear 
 
 pVocMap :: Args MirexArgs -> RefLab -> ChordLabel -> EqIgnore
 pVocMap arg = case getRequiredArg arg VocabularyMapping of
@@ -139,12 +136,11 @@ pVocMap arg = case getRequiredArg arg VocabularyMapping of
                 "majMin"    -> majMinEq
                 "root"      -> rootOnlyEq
                 m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)
-              
-toFileName :: FilePath -> Year -> Collection -> Team -> Int -> FilePath
-toFileName dir y c t i = dir </> show y </> show c </> t </> toID where
 
-  toID :: String
-  toID = case c of
-           Beatles   -> printf "chordmrx09000%03d.js" i
-           Billboard -> show i <.> "js"
+-- pFormat :: Args MirexArgs -> 
+-- pFormat arg = case getArg arg Format of
+                -- "lab" -> 
+                -- "json" -> 
+
+
               

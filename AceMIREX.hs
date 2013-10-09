@@ -1,7 +1,10 @@
 module AceMIREX  ( Collection (..)
                  , Year (..)
+                 , Format (..)
                  , Team
                  , MChords (..)
+                 , toFileName
+                 , fromFileName
                  , toYear
                  , toCollection
                  , errorise

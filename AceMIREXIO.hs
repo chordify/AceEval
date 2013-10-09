@@ -1,15 +1,19 @@
+{-# OPTIONS_GHC -Wall          #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE Rank2Types #-}
 module AceMIREXIO  ( evaluateMChords
                    , evaluateMChordsVerb
                    , evaluateMirex
                    ) where
 
 import ChordJSON
+import ChordLab
 import AceMIREX
 import Evaluation
 import HarmTrace.Base.Time           ( Timed (..), BeatTime (..)
                                      , offset, onset, duration, pprint )
 import HarmTrace.Base.Chord          ( ChordLabel, Chord (..) )
-import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord )
+import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
 
 import Control.Monad                 ( when, zipWithM )
 import Data.Foldable                 ( foldrM )
@@ -71,7 +75,7 @@ evaluateMirex ef af mpp mteam dir y c =
           -- | returns the files for one team
           getTeamFiles :: Team -> IO [(Team, FilePath)]
           getTeamFiles tm = getCurDirectoryContents (baseDir </> tm)
-                            >>= return . map (\f -> (tm, baseDir </> tm </> f))
+                          >>= return . map (\fp -> (tm, baseDir </> tm </> fp))
 
           -- Evaluates a single file
           -- evaluateMChord :: (Team, FilePath) -> IO a
@@ -91,17 +95,26 @@ evaluateMirex ef af mpp mteam dir y c =
                    Just t  -> filter (t ==) tms
                    Nothing -> tms
       mapM doTeam tms'
- 
 
 -- | Reads a MIREX file and returns an 'MChords'
-readMChords :: Year -> Collection -> FilePath -> IO MChords
-readMChords y c fp = 
-  do txt <- readFile fp 
-     case parseDataWithErrors (pChordJSON y c) txt of
+readMChords :: FilePath -> Year -> Collection -> FilePath -> IO MChords
+readMChords dir y c fp = 
+  do let (_y, _c, tm, i, f) = fromFileName fp
+     txt <- readFile fp 
+     gt  <- readFile (toFileName dir y c "Ground-truth" i)
+     
+     case f of 
+       JS  -> parseChords (pChordJSON y c) txt
+       LAB -> parseChords pGroundTruth 
+             (parseChords (pLabMChords tm i c) txt) gt where
+                        
+parseChords :: Parser MChords -> String -> MChords
+parseChords pf txt = case parseDataWithErrors pf txt of
        (mc, []) -> fillHoles $ mc
-       (_ , er) -> error ("parsing file "  ++ fp ++ " yields the following " ++
+       (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
                        
+
 fillHoles :: MChords -> IO MChords
 fillHoles mc = do c  <- fill . chords $ mc
                   gt <- case groundTruth mc of
