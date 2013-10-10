@@ -37,7 +37,7 @@ pFooter = g <$> (lexeme (pSym ';') *> pVar "seriesNames")
 pVar :: String -> Parser (String, Collection, Int)
 -- pVar sfx = f <$> (pString "var "   *> pList1_ng pAscii )
 pVar sfx = f <$> (pString "var "   *> pTeam )
-             <*> (pString "chords" *> pMaybe (pString "chordmrx"))
+             <*> (pString "chords" *> pMaybe (pString "chordmrx09"))
              <*>  pInteger <* pSym '_' <* pString sfx <* (lexeme $ pString " =")
              <?> "var statement"
              where f tm mb s = (tm, maybe Billboard (const Beatles) mb, s)

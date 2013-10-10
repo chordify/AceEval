@@ -97,7 +97,7 @@ toFileName dir y c t i f = dir </> show y </> show c </> t </> toID where
 
   toID :: String
   toID = case (f,c) of
-           (LAB, Beatles)   -> printf "chordmrx09000%03d.lab" i
+           (LAB, Beatles)   -> printf "chordschordmrx09000%03d.lab" i
            (JS,  Beatles)   -> printf "chordmrx09000%03d.js" i
            (LAB, Billboard) -> printf "chords%04d.lab" i
            (JS,  Billboard) -> printf "%04d.js" i
