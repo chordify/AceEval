@@ -16,7 +16,7 @@ import Text.Printf                ( printf )
 import Data.Maybe                 ( isJust )
 
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
-               | Collection | GroundTruthDir | VocabularyMapping 
+               | Collection | GroundTruthDir | VocabularyMapping | FileFormat
                deriving (Eq, Ord, Show)
 
 myArgs :: [Arg MirexArgs]
@@ -69,12 +69,12 @@ myArgs = [
                  argData  = argDataRequired "mapping" ArgtypeString,
                  argDesc  = "Chord label comparison method (vocabulary mapping)"
                }      
-         -- , Arg { argIndex = Format,
-                 -- argAbbr  = Just 'f',
-                 -- argName  = Just "format",
-                 -- argData  = argDataDefaulted "format" ArgtypeString "lab",
-                 -- argDesc  = "The kind of input format (json|lab)"
-               -- } 
+         , Arg { argIndex = FileFormat,
+                 argAbbr  = Just 'f',
+                 argName  = Just "format",
+                 argData  = argDataOptional "format" ArgtypeString,
+                 argDesc  = "The kind of input format (json|lab)"
+               } 
          ] 
 
 main :: IO ()
@@ -107,7 +107,7 @@ fileOrDir arg = case ( getArg arg MirexFilepath, getArg arg MirexDir
    (_     , Just d, _      ,Nothing) 
       -> Right d
    (_     , Just d, Just tm,Just i ) 
-      -> Left $ toFileName d (pYear arg) (pCollection arg) tm i
+      -> Left $ toFileName d (pYear arg) (pCollection arg) tm i (pFormat arg)
    (_     , _     , _      , _     ) 
       -> usageError arg "No directory or file specified"
 
@@ -125,10 +125,14 @@ pTeam arg dir y c = case getArg arg Team of
                                                    ++ " does not exist")
             
 pCollection :: Args MirexArgs -> Collection
-pCollection arg = pCollection $ getRequiredArg arg Collection
+pCollection arg = case toCollection $ getRequiredArg arg MirexYear of
+                   (Just c , _) -> c
+                   (Nothing, e) -> usageError arg e
                     
 pYear :: Args MirexArgs -> Year
-pYear arg = pYear $ getRequiredArg arg MirexYear 
+pYear arg = case toYear $ getRequiredArg arg MirexYear of
+              (Just y , _) -> y
+              (Nothing, e) -> usageError arg e
 
 pVocMap :: Args MirexArgs -> RefLab -> ChordLabel -> EqIgnore
 pVocMap arg = case getRequiredArg arg VocabularyMapping of
@@ -137,10 +141,10 @@ pVocMap arg = case getRequiredArg arg VocabularyMapping of
                 "root"      -> rootOnlyEq
                 m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)
 
--- pFormat :: Args MirexArgs -> 
--- pFormat arg = case getArg arg Format of
-                -- "lab" -> 
-                -- "json" -> 
+pFormat :: Args MirexArgs -> Format
+pFormat arg = case toFormat $ getRequiredArg arg MirexYear of
+               (Just f , _) -> f
+               (Nothing, e) -> usageError arg e 
 
 
               

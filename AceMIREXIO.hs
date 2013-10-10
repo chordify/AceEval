@@ -16,6 +16,7 @@ import HarmTrace.Base.Chord          ( ChordLabel, Chord (..) )
 import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
 
 import Control.Monad                 ( when, zipWithM )
+import Control.Monad.State           ( State, modify )
 import Data.Foldable                 ( foldrM )
 import Data.List                     ( intercalate, genericLength, partition )
 import Data.Maybe                    ( isJust, fromJust )
@@ -97,53 +98,53 @@ evaluateMirex ef af mpp mteam dir y c =
       mapM doTeam tms'
 
 -- | Reads a MIREX file and returns an 'MChords'
-readMChords :: FilePath -> Year -> Collection -> FilePath -> IO MChords
-readMChords dir y c fp = 
-  do let (_y, _c, tm, i, f) = fromFileName fp
+readMChords :: Year -> Collection -> FilePath -> IO MChords
+readMChords y c fp = 
+  do let (b,y,c,tm,i,f) = fromFileName fp 
      txt <- readFile fp 
-     gt  <- readFile (toFileName dir y c "Ground-truth" i)
+     gt  <- readFile (toFileName b y c "Ground-truth" i f)
      
      case f of 
-       JS  -> parseChords (pChordJSON y c) txt
-       LAB -> parseChords pGroundTruth 
-             (parseChords (pLabMChords tm i c) txt) gt where
+       JS  -> return . parseChords (pChordJSON y c) $ txt
+       LAB -> return . parseChords (pGroundTruth 
+                      (parseChords (pLabMChords tm i y c) txt)) $ gt 
                         
 parseChords :: Parser MChords -> String -> MChords
 parseChords pf txt = case parseDataWithErrors pf txt of
-       (mc, []) -> fillHoles $ mc
+       (mc, []) -> mc
        (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
                        
 
-fillHoles :: MChords -> IO MChords
-fillHoles mc = do c  <- fill . chords $ mc
-                  gt <- case groundTruth mc of
-                          Nothing  -> return Nothing
-                          (Just g) -> fill g >>= return . Just
-                  return mc { chords = c, groundTruth = gt } where
+-- fillHoles :: MChords -> IO MChords
+-- fillHoles mc = do c  <- fill . chords $ mc
+                  -- gt <- case groundTruth mc of
+                          -- Nothing  -> return Nothing
+                          -- (Just g) -> fill g >>= return . Just
+                  -- return mc { chords = c, groundTruth = gt } where
   
-  fill :: [Timed ChordLabel] -> IO [Timed ChordLabel]
-  -- NB filterZeroLen should go somewhere else
-  fill cs = do foldrM step [] cs >>= filterZeroLen >>= return where
-  
-    step :: Timed ChordLabel ->[Timed ChordLabel] -> IO [Timed ChordLabel]
-    step a []     = return [a]
-    step a (b:ts) 
-      | off == on = return (a        : b : ts)
-      | otherwise = warn >> return (a : hole : b : ts)
-                       
-           where off  = offset a
-                 on   = onset  b 
-                 hole = Timed UndefChord [Time off, Time on]
-                 warn = putErrStrLn ("Warning: found a hole in " ++ show mc ++" "
-                            {- ++ desc cd -} ++ ": " ++ show off ++ " - " ++ show on)
+fill :: [Timed ChordLabel] -> State [String] [Timed ChordLabel]
+-- NB filterZeroLen should go somewhere else
+fill cs = do foldrM step [] cs >>= filterZeroLen >>= return where
 
-filterZeroLen :: Show a => [Timed a] -> IO [Timed a] 
+  step :: Timed ChordLabel ->[Timed ChordLabel] -> State [String] [Timed ChordLabel]
+  step a []     = return [a]
+  step a (b:ts) 
+    | off == on =                    return (a        : b : ts)
+    | otherwise = modify (warn :) >> return (a : hole : b : ts)
+                     
+         where off  = offset a
+               on   = onset  b 
+               hole = Timed UndefChord [Time off, Time on]
+               warn = "Warning: found a hole in " -- ++ show mc ++" "
+                    {- ++ desc cd -} ++ ": " ++ show off ++ " - " ++ show on
+
+filterZeroLen :: Show a => [Timed a] -> State [String] [Timed a] 
 filterZeroLen td = do let (zero, good) = partition (\x -> duration x == 0) td
-                      mapM_ warn zero >> return good where
+                      modify ((map warn zero) ++) >> return good where
                    
-  warn :: Show a => Timed a -> IO ()
-  warn t = putErrStrLn ("Warning: found zero length segment: " ++ pprint t )
+  warn :: Show a => Timed a -> String
+  warn t = "Warning: found zero length segment: " ++ pprint t
                        
 -- | Applies an evaluation function to an 'MChords' 
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a

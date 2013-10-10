@@ -3,17 +3,19 @@ module AceMIREX  ( Collection (..)
                  , Format (..)
                  , Team
                  , MChords (..)
-                 , toFileName
+                 -- , getFormat
                  , fromFileName
+                 , toFileName
+                 -- , toLabGT
                  , toYear
                  , toCollection
+                 , toFormat
                  , errorise
                  ) where
                  
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
 import Data.List               ( intercalate )
-import Data.Char               ( isDigit )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), (<.>), splitDirectories, joinPath
                                , takeExtension, dropExtension )
@@ -39,6 +41,9 @@ data MChords    = MChords { collection  :: Collection
 instance Show MChords where
   show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
 
+-- getFormat :: FilePath -> Format
+-- getFormat fp = let (b,y,c,t,i,f) = fromFileName fp in f
+  
 fromFileName :: FilePath -> (FilePath, Year, Collection, Team, Int, Format)
 fromFileName fp = case reverse . splitDirectories $ fp of
         (fn : tm : c : y : base) -> ( joinPath (reverse base)
@@ -53,8 +58,8 @@ fromFileName fp = case reverse . splitDirectories $ fp of
 -- Parses: chordmrx09000008.js, chords1234.js, audio1234.lab, 3456.lab
 getId :: String -> Int
 -- getId s = read . dropWhile (not . isDigit) . dropExtension $ s
-getId s = read . reverse . take 4. reverse . dropExtension $ s
-                    
+getId s = read . reverse . take 4 . reverse . dropExtension $ s
+
 toCollection :: String -> (Maybe Collection, String)
 toCollection s = case s of
                   "bb"        -> (Just Billboard, [])
@@ -64,14 +69,14 @@ toCollection s = case s of
                   "Billboard" -> (Just Billboard, [])
                   "Beatles"   -> (Just Beatles, [])
                   m           -> (Nothing, "unrecognised collection: " ++ m)
-                    
+
 toYear :: String -> (Maybe Year, String)
 toYear s = case s of
             "2010" -> (Just Y2010, [])
             "2011" -> (Just Y2011, [])
             "2012" -> (Just Y2012, [])
             m      -> (Nothing, "unrecognised year: " ++ m)
-                    
+
 toFormat :: String -> (Maybe Format, String)
 toFormat s = case s of
               ".js"  -> (Just JS , [])
@@ -81,10 +86,10 @@ toFormat s = case s of
 errorise :: (Maybe a, String) -> a
 errorise (Just a,  _) = a
 errorise (Nothing, e) = error e 
-                    
-toLabGT :: FilePath -> FilePath
-toLabGT fp = let (base, y, c, t, i, f) = fromFileName fp
-             in toFileName base y c "Ground-truth" i f
+
+-- toLabGT :: FilePath -> FilePath
+-- toLabGT fp = let (base, y, c, t, i, f) = fromFileName fp
+             -- in toFileName base y c "Ground-truth" i f
                     
 toFileName :: FilePath -> Year -> Collection -> Team -> Int -> Format 
            -> FilePath
