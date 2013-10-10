@@ -15,7 +15,7 @@ import HarmTrace.Base.Chord    ( ChordLabel )
 import Data.List               ( intercalate )
 import Data.Char               ( isDigit )
 import Text.Printf             ( printf )
-import System.FilePath         ( (</>), (<.>), splitDirectories
+import System.FilePath         ( (</>), (<.>), splitDirectories, joinPath
                                , takeExtension, dropExtension )
 
 data Format     = JS | LAB deriving (Show, Eq)
@@ -39,9 +39,10 @@ data MChords    = MChords { collection  :: Collection
 instance Show MChords where
   show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
 
-fromFileName :: FilePath -> (Year, Collection, Team, Int, Format)
+fromFileName :: FilePath -> (FilePath, Year, Collection, Team, Int, Format)
 fromFileName fp = case reverse . splitDirectories $ fp of
-        (fn : tm : c : y : base) -> ( errorise (toYear y)
+        (fn : tm : c : y : base) -> ( joinPath (reverse base)
+                                    , errorise (toYear y)
                                     , errorise (toCollection c)
                                     , tm
                                     , getId fn
@@ -51,7 +52,8 @@ fromFileName fp = case reverse . splitDirectories $ fp of
 
 -- Parses: chordmrx09000008.js, chords1234.js, audio1234.lab, 3456.lab
 getId :: String -> Int
-getId s = read . dropWhile (not . isDigit) . dropExtension $ s
+-- getId s = read . dropWhile (not . isDigit) . dropExtension $ s
+getId s = read . reverse . take 4. reverse . dropExtension $ s
                     
 toCollection :: String -> (Maybe Collection, String)
 toCollection s = case s of
@@ -80,10 +82,17 @@ errorise :: (Maybe a, String) -> a
 errorise (Just a,  _) = a
 errorise (Nothing, e) = error e 
                     
-toFileName :: FilePath -> Year -> Collection -> Team -> Int -> FilePath
-toFileName dir y c t i = dir </> show y </> show c </> t </> toID where
+toLabGT :: FilePath -> FilePath
+toLabGT fp = let (base, y, c, t, i, f) = fromFileName fp
+             in toFileName base y c "Ground-truth" i f
+                    
+toFileName :: FilePath -> Year -> Collection -> Team -> Int -> Format 
+           -> FilePath
+toFileName dir y c t i f = dir </> show y </> show c </> t </> toID where
 
   toID :: String
-  toID = case c of
-           Beatles   -> printf "chordmrx09000%03d.js" i
-           Billboard -> show i <.> "js"
+  toID = case (f,c) of
+           (LAB, Beatles)   -> printf "chordmrx09000%03d.lab" i
+           (JS,  Beatles)   -> printf "chordmrx09000%03d.js" i
+           (LAB, Billboard) -> printf "chords%04d.lab" i
+           (JS,  Billboard) -> printf "%04d.js" i
