@@ -127,12 +127,13 @@ postProcess mc = do c  <- process . chords $ mc
                             Nothing -> return Nothing
   
   process :: [Timed ChordLabel] -> IO [Timed ChordLabel]
-  process cs = do let (cs', es) = runState (fill cs >>= filterZeroLen) []
+  process cs = do let (cs', es) = runState (fillHoles cs >>= filterZeroLen) []
                   mapM_ putErrStrLn es
                   return cs'
-  
-  fill :: [Timed ChordLabel] -> State [String] [Timed ChordLabel]
-  fill cs = do foldrM step [] cs >>= return where
+  -- Some annotations are known to contain holes:
+  -- starts not at the end time of the previous segment, but later
+  fillHoles :: [Timed ChordLabel] -> State [String] [Timed ChordLabel]
+  fillHoles cs = do foldrM step [] cs >>= return where
 
     step :: Timed ChordLabel ->[Timed ChordLabel] -> State [String] [Timed ChordLabel]
     step a []     = return [a]
@@ -146,6 +147,8 @@ postProcess mc = do c  <- process . chords $ mc
                  warn = "Warning: found a hole in " ++ show mc ++" "
                       {- ++ desc cd -} ++ ": " ++ show off ++ " - " ++ show on
 
+  -- Some annotations are known to contain zero length segments:
+  -- their start and end time are equal
   filterZeroLen :: Show a => [Timed a] -> State [String] [Timed a] 
   filterZeroLen td = do let (zero, good) = partition (\x -> duration x == 0) td
                         modify ((map warn zero) ++) >> return good where

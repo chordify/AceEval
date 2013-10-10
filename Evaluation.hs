@@ -253,6 +253,7 @@ chordCompare :: (Root -> Root -> EqIgnore)
              ->  RefLab -> ChordLabel -> EqIgnore
 chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord,    NoChord   ) -> Equal
+                             (UndefChord, UndefChord) -> Equal
                              (UndefChord, NoChord   ) -> Ignore
                              (_         , UndefChord) -> NotEq
                              (UndefChord, _         ) -> NotEq
@@ -264,6 +265,7 @@ chordCompare rEq cEq rf t = case (refLab rf, t) of
                  
 mirex2010 :: RefLab -> ChordLabel -> EqIgnore
 mirex2010 (RefLab NoChord)    NoChord    = Equal
+mirex2010 (RefLab UndefChord) UndefChord = Equal -- Ignore
 mirex2010 (RefLab UndefChord) _          = NotEq -- Ignore
 mirex2010 _                   UndefChord = NotEq
 mirex2010 (RefLab NoChord)    _          = NotEq
