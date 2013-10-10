@@ -38,6 +38,8 @@ module Evaluation (
     , (<=*)
     , (&&*)
     , (||*)
+    , ignore
+    , equal
     -- * Displaying evaluations 
     -- , printChordRCO
     -- , printRCO
@@ -272,9 +274,9 @@ mirex2010 (RefLab gt)         test       =
       -- removeBass (Chord r sh add _b) = Chord r sh add (Note Nat I1)
 
       bassMatch :: IntSet -> ChordLabel -> Int
-      bassMatch pc (Chord _ _ _ (Note Nat I1)) = 0
-      bassMatch pc c | bassPC c `member` pc    = 1
-                     | otherwise               = 0
+      bassMatch _ (Chord _ _ _ (Note Nat I1)) = 0
+      bassMatch p c | bassPC c `member` p     = 1
+                    | otherwise               = 0
                    
       gtpc  = pc . toPitchClasses $ gt
       tstpc = pc . toPitchClasses $ test

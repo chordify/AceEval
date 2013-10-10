@@ -17,7 +17,7 @@ import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
 import Data.List               ( intercalate )
 import Text.Printf             ( printf )
-import System.FilePath         ( (</>), (<.>), splitDirectories, joinPath
+import System.FilePath         ( (</>), splitDirectories, joinPath
                                , takeExtension, dropExtension )
 
 data Format     = JS | LAB deriving (Show, Eq)

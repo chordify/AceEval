@@ -18,7 +18,7 @@ import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChor
 import Control.Monad                 ( when, zipWithM )
 import Control.Monad.State           ( State, modify, runState )
 import Data.Foldable                 ( foldrM )
-import Data.List                     ( intercalate, genericLength, partition )
+import Data.List                     ( partition )
 import Data.Maybe                    ( isJust, fromJust )
 import System.Directory              ( getDirectoryContents )
 import System.FilePath               ( (</>) )
@@ -33,16 +33,16 @@ evaluateMChords :: ([Timed RefLab] -> [Timed ChordLabel] -> a)
                    -- ^ a function that evaluates a song 
                 -> (a -> Double)
                    -- ^ a function post-processes a evaluation result
-                -> FilePath -> Year -> Collection -> IO ()
-evaluateMChords ef pp fp y c = 
-  do mc <- readMChords y c fp
+                -> FilePath -> IO ()
+evaluateMChords ef pp fp = 
+  do mc <- readMChords fp
      putStrLn . (show mc ++ ) . show . evaluate (\a b -> pp $ ef a b) $ mc
   
 
 evaluateMChordsVerb :: Show a => ([Timed RefLab] -> [Timed ChordLabel] -> IO a) 
-                    -> FilePath -> Year -> Collection -> IO a
-evaluateMChordsVerb ef fp y c = 
-  do mc <- readMChords y c fp
+                    -> FilePath -> IO a
+evaluateMChordsVerb ef fp = 
+  do mc <- readMChords fp
      print mc
      r <- evaluate ef mc 
      print r
@@ -61,6 +61,7 @@ evaluateMirex :: ([Timed RefLab] -> [Timed ChordLabel] -> a)
                  -- that will be printed to the user
               -> Maybe Team 
                  -- ^ evaluates a specific team only
+                 --TODO probably we don't need Year and Collection here
               -> FilePath -> Year -> Collection -> IO [Double]
 evaluateMirex ef af mpp mteam dir y c =
    do let baseDir = dir </> show y </> show c
@@ -81,7 +82,7 @@ evaluateMirex ef af mpp mteam dir y c =
           -- Evaluates a single file
           -- evaluateMChord :: (Team, FilePath) -> IO a
           evaluateMChord (tm, fp) = 
-            do mc <- readMChords y c fp 
+            do mc <- readMChords fp 
                if tm == team mc
                   then do let r = evaluate ef mc
                           when (isJust mpp) . putStrLn 
@@ -98,8 +99,8 @@ evaluateMirex ef af mpp mteam dir y c =
       mapM doTeam tms'
 
 -- | Reads a MIREX file and returns an 'MChords'
-readMChords :: Year -> Collection -> FilePath -> IO MChords
-readMChords y c fp = 
+readMChords :: FilePath -> IO MChords
+readMChords fp = 
   do let (b,y,c,tm,i,f) = fromFileName fp 
      txt <- readFile fp 
      
@@ -174,6 +175,7 @@ putErrStrLn s = hPutStrLn stderr s
 -- Testing
 --------------------------------------------------------------------------------
 
+testA, testB :: [String]
 testA = ["C:maj","C:min","C:dim","C:aug","C:maj","C#:maj","C:dim7","C:maj"
         ,"C:maj","C:min","C:maj","C:dim","C:sus2","C:min","C:min"]
 testB = ["C:maj","C:min","C:dim","C:aug","C:min","Db:maj","C:(1,#2,#4,6)"

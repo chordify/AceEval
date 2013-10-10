@@ -7,7 +7,7 @@ import AceMIREX
 import HarmTrace.Base.Chord
 import HarmTrace.Base.Time
 import HarmTrace.Base.Parse.General
-import HarmTrace.Base.Parse.ChordParser ( pRoot, pChord )
+import HarmTrace.Base.Parse.ChordParser ( pChord )
 
 --------------------------------------------------------------------------------
 -- Parse MIREX style chord annotations

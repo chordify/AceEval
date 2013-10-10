@@ -3,16 +3,14 @@ module Main where
 
 -- other libraries
 import System.Console.ParseArgs
-import ChordJSON
 import AceMIREX
 import AceMIREXIO
 import Evaluation
 import HarmTrace.Base.Chord       ( ChordLabel )
 import HarmTrace.Base.Time        ( Timed )
 import Control.Monad              ( void )
-import System.FilePath            ( (</>), (<.>) )
+import System.FilePath            ( (</>) )
 import System.Directory           ( doesDirectoryExist )
-import Text.Printf                ( printf )
 import Data.Maybe                 ( isJust )
 
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
@@ -90,8 +88,8 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
               pEq a b = printOverlapEval vm a b >>= return . pp
               
           case fileOrDir arg of
-            Left  f -> if isJust p then void $ evaluateMChordsVerb pEq f y c
-                                   else evaluateMChords ef pp f y c
+            Left  f -> if isJust p then void $ evaluateMChordsVerb pEq f 
+                                   else evaluateMChords ef pp f
             Right d -> do t <- pTeam arg d y c
                           void $ evaluateMirex ef weightOverlapRatio p t d y c 
 
