@@ -102,11 +102,11 @@ readMChords :: Year -> Collection -> FilePath -> IO MChords
 readMChords y c fp = 
   do let (b,y,c,tm,i,f) = fromFileName fp 
      txt <- readFile fp 
-     gt  <- readFile (toFileName b y c "Ground-truth" i f)
      
      case f of 
-       JS  -> postProcess . parseChords (pChordJSON y c) $ txt
-       LAB -> postProcess . parseChords (pGroundTruth 
+       JS  ->    postProcess . parseChords (pChordJSON y c) $ txt
+       LAB -> do gt  <- readFile (toFileName b y c "Ground-truth" i f)
+                 postProcess . parseChords (pGroundTruth 
                            (parseChords (pLabMChords tm i y c) txt)) $ gt 
                         
 parseChords :: Parser MChords -> String -> MChords
@@ -116,12 +116,14 @@ parseChords pf txt = case parseDataWithErrors pf txt of
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
                        
 postProcess :: MChords -> IO MChords
-postProcess mc = do let c = chords $ mc
-                        gt= case groundTruth mc of
-                            Nothing  -> Nothing
-                            (Just g) -> Just g
+postProcess mc = do c  <- process . chords $ mc
+                    gt <- maybeIO process (groundTruth mc)
                     
                     return mc { chords = c, groundTruth = gt } where
+  
+  maybeIO :: (a -> IO b) -> Maybe a -> IO (Maybe b)
+  maybeIO f ma = case ma of Just a  -> f a >>= return . Just
+                            Nothing -> return Nothing
   
   process :: [Timed ChordLabel] -> IO [Timed ChordLabel]
   process cs = do let (cs', es) = runState (fill cs >>= filterZeroLen) []

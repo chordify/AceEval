@@ -70,7 +70,7 @@ myArgs = [
                  argDesc  = "Chord label comparison method (vocabulary mapping)"
                }      
          , Arg { argIndex = FileFormat,
-                 argAbbr  = Just 'f',
+                 argAbbr  = Just 'F',
                  argName  = Just "format",
                  argData  = argDataOptional "format" ArgtypeString,
                  argDesc  = "The kind of input format (json|lab)"
@@ -125,7 +125,7 @@ pTeam arg dir y c = case getArg arg Team of
                                                    ++ " does not exist")
             
 pCollection :: Args MirexArgs -> Collection
-pCollection arg = case toCollection $ getRequiredArg arg MirexYear of
+pCollection arg = case toCollection $ getRequiredArg arg Collection of
                    (Just c , _) -> c
                    (Nothing, e) -> usageError arg e
                     
@@ -142,7 +142,7 @@ pVocMap arg = case getRequiredArg arg VocabularyMapping of
                 m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)
 
 pFormat :: Args MirexArgs -> Format
-pFormat arg = case toFormat $ getRequiredArg arg MirexYear of
+pFormat arg = case toFormat $ getRequiredArg arg FileFormat of
                (Just f , _) -> f
                (Nothing, e) -> usageError arg e 
 
