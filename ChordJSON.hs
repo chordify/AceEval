@@ -5,7 +5,7 @@ module ChordJSON                     ( pChordJSON )where
 
 import AceMIREX
 import HarmTrace.Base.Time           ( Timed (..), BeatTime (..) )
-import HarmTrace.Base.Chord          ( ChordLabel )
+import HarmTrace.Base.Chord          
 import HarmTrace.Base.Parse          
 
 --------------------------------------------------------------------------------
@@ -54,12 +54,40 @@ pChordList = pJSList . pBraces $ pTimedChord
 pTimedChord :: Parser (Timed ChordLabel)
 pTimedChord = timedData <$> (pString "o: "   *> pDoubleRaw)
                         <*> (pString ", f: " *> pDoubleRaw)
-                        <*> (pString ", l: \"" *> pChord   )
+                        <*> (pString ", l: \"" *> pMIREXChord   )
                         <*   pString "\", a: " <* (pSym '0' <|> pSym '1') 
                         <?> "Onset, offset and chord" where
                         
                         timedData on off c = Timed c [Time on, Time off]
 
+                        
+                        
+pMIREXChord :: Parser ChordLabel
+pMIREXChord = fixChord <$> pChord where
+  
+  {- Fixes a bug in the NEMA framework. 
+     As Johan pauwels explains in an email (10/10/2013): 
+     I'm pretty sure there is a bug somewhere in the NEMA framework that somehow
+     converts some "N" symbols to "F#:7sus4", just by switching representations.
+     I don't know when exactly it happens (obviously it doesn't do it for all 
+     "N"s), but it has been there since forever (aka 2010). 
+
+     Actually, that conversion script has been virtually unchanged since 2010 
+     (it has been coded in an Utrecht auditorium). Back then, it was an easy and
+     safe workaround because I knew that none of the estimation algorithms could
+     even generate 7sus4 chords. Only the ground-truth had proper 7sus4 chords 
+     in it, but luckily not the conversion of N symbols, so that's why there's 
+     that if clause. I haven't verified with the new algorithms, but I suspect 
+     that they still cannot generate 7sus4, so the assumption probably still 
+     holds and this conversion can still be done safely. It only didn't work 
+     for that famous example were Bristol just outputted the exact annotations 
+     after some sort of elementary fingerprinting, but I took care of that 
+     manually (and that result was useless anyway). -}
+  
+    fixChord :: ChordLabel -> ChordLabel
+    fixChord (Chord (Note Sh F) SevSus4 _ _) = NoChord
+    fixChord c                               = c
+                        
 -- replace by listparser?
 -- Parsers a typical javascript list: [elem, elem, etc.]
 pJSList :: ParserTrafo a [a]
