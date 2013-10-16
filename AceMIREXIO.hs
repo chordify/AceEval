@@ -10,7 +10,7 @@ import ChordJSON
 import ChordLab
 import AceMIREX
 import Evaluation
-import HarmTrace.Base.Time           ( Timed (..), BeatTime (..)
+import HarmTrace.Base.Time           ( Timed (..), BeatTime (..), BeatTime (..)
                                      , offset, onset, duration, pprint )
 import HarmTrace.Base.Chord          ( ChordLabel, Chord (..) )
 import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
@@ -38,7 +38,7 @@ evaluateMChords ef pp fp y c =
   do mc <- readMChords y c fp
      putStr (show mc ++ ": ") 
      putStrLn . show . evaluate (\a b -> pp $ ef a b) $ mc
-  
+ 
 
 evaluateMChordsVerb :: Show a => ([Timed RefLab] -> [Timed ChordLabel] -> IO a) 
                     -> FilePath -> Year -> Collection -> IO a
@@ -55,7 +55,7 @@ evaluateMChordsVerb ef fp y c =
 -- chord recognition results from that particular year and collection
 evaluateMirex :: ([Timed RefLab] -> [Timed ChordLabel] -> a) 
                  -- ^ a function that evaluates a song 
-              -> ([a] -> Double)
+              -> ([a] -> IO Double)
                  -- ^ a function that aggregates the results of multiple songs
               -> Maybe (a -> Double)
                  -- ^ a function post-processes an individual evaluation result
@@ -69,10 +69,8 @@ evaluateMirex ef af mpp mteam dir y c =
           -- | Evaluates the submission of a single team
           doTeam :: Team -> IO Double
           doTeam tm = 
-            do r <- getTeamFiles tm 
-                    >>= parallel . map evaluateMChord >>= return . af
-               putStrLn $ "Team " ++ tm ++ " average: " ++ show r
-               return r
+            do putStrLn $ "Team " ++ tm
+               getTeamFiles tm >>= parallel . map evaluateMChord >>= af
 
           -- | returns the files for one team
           getTeamFiles :: Team -> IO [(Team, FilePath)]
@@ -115,6 +113,27 @@ parseChords pf txt = case parseDataWithErrors pf txt of
        (mc, []) -> mc
        (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
+
+data Edit = Fill | Zero ChordLabel
+
+instance Show Edit where
+  show Fill     = "hole in "
+  show (Zero c) = "Zero length segment for " ++ show c ++ " "
+
+data EditLog = EditLog Edit Collection Year String Int Double Double 
+                       
+instance Show EditLog where
+  show (EditLog e c y t i on off) = 
+    (show e ++ intercalate " " [show c, show y, t, show i] 
+            ++ ": " ++ show off ++ " - " ++ show on)
+                                
+fillFromMChords :: MChords -> Timed ChordLabel -> EditLog
+fillFromMChords mc c = EditLog Fill (collection mc) (year mc) (team mc) 
+                               (songID mc) (onset c) (offset c)
+
+zeroFromMChords :: MChords -> Timed ChordLabel -> EditLog
+zeroFromMChords mc c = EditLog (Zero (getData c)) (collection mc) (year mc) 
+                               (team mc) (songID mc) (onset c) (offset c)                               
                        
 postProcess :: MChords -> IO MChords
 postProcess mc = do c  <- process . chords $ mc
@@ -128,30 +147,27 @@ postProcess mc = do c  <- process . chords $ mc
   
   process :: [Timed ChordLabel] -> IO [Timed ChordLabel]
   process cs = do let (cs', es) = runState (fill cs >>= filterZeroLen) []
-                  mapM_ putErrStrLn es
+                  mapM_ (putErrStrLn . show) es
                   return cs'
   
-  fill :: [Timed ChordLabel] -> State [String] [Timed ChordLabel]
+  fill :: [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
   fill cs = do foldrM step [] cs >>= return where
 
-    step :: Timed ChordLabel ->[Timed ChordLabel] -> State [String] [Timed ChordLabel]
+    step :: Timed ChordLabel ->[Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
     step a []     = return [a]
     step a (b:ts) 
-      | off == on =                    return (a        : b : ts)
-      | otherwise = modify (warn :) >> return (a : hole : b : ts)
+      | off == on =                   return (a        : b : ts)
+      | otherwise = modify (log :) >> return (a : hole : b : ts)
                        
            where off  = offset a
                  on   = onset  b 
-                 hole = Timed UndefChord [Time off, Time on]
-                 warn = "Warning: found a hole in " ++ show mc ++" "
-                      {- ++ desc cd -} ++ ": " ++ show off ++ " - " ++ show on
-
-  filterZeroLen :: Show a => [Timed a] -> State [String] [Timed a] 
+                 hole = Timed NoChord [Time off, Time on]
+                 log  = fillFromMChords mc hole
+                 
+  filterZeroLen :: [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel] 
   filterZeroLen td = do let (zero, good) = partition (\x -> duration x == 0) td
-                        modify ((map warn zero) ++) >> return good where
-                     
-    warn :: Show a => Timed a -> String
-    warn t = "Warning: found zero length segment in " ++ show mc ++ ": " ++ pprint t
+                        modify ((map (zeroFromMChords mc) zero) ++)
+                        return good 
                        
 -- | Applies an evaluation function to an 'MChords' 
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
