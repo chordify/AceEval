@@ -36,7 +36,8 @@ evaluateMChords :: ([Timed RefLab] -> [Timed ChordLabel] -> a)
                 -> FilePath -> Year -> Collection -> IO ()
 evaluateMChords ef pp fp y c = 
   do mc <- readMChords y c fp
-     putStrLn . (show mc ++ ) . show . evaluate (\a b -> pp $ ef a b) $ mc
+     putStr (show mc ++ ": ") 
+     putStrLn . show . evaluate (\a b -> pp $ ef a b) $ mc
   
 
 evaluateMChordsVerb :: Show a => ([Timed RefLab] -> [Timed ChordLabel] -> IO a) 

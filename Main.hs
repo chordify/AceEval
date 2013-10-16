@@ -3,16 +3,14 @@ module Main where
 
 -- other libraries
 import System.Console.ParseArgs
-import ChordJSON
 import AceMIREX
 import AceMIREXIO
 import Evaluation
 import HarmTrace.Base.Chord       ( ChordLabel )
 import HarmTrace.Base.Time        ( Timed )
 import Control.Monad              ( void )
-import System.FilePath            ( (</>), (<.>) )
+import System.FilePath            ( (</>) )
 import System.Directory           ( doesDirectoryExist )
-import Text.Printf                ( printf )
 import Data.Maybe                 ( isJust )
 
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
