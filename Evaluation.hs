@@ -152,7 +152,7 @@ durations = foldr step (EqIDur 0 0 0) where
   step t d = case getData t of
                Equal  -> d {equals  = equals  d + duration t}
                NotEq  -> d {notEqs  = notEqs  d + duration t}
-               Ignore -> d {ignores = ignores d + duration t}
+               Ignore -> d {ignores = ignores d             }
                      
 totalDur :: EqIDur -> Double
 totalDur (EqIDur e n i) = e + n + i
@@ -251,9 +251,9 @@ chordCompare :: (Root -> Root -> EqIgnore)
              ->  RefLab -> ChordLabel -> EqIgnore
 chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord,    NoChord   ) -> Equal
-                             (UndefChord, NoChord   ) -> Ignore
+                             -- (UndefChord, NoChord   ) -> Ignore
+                             (UndefChord, _         ) -> Ignore
                              (_         , UndefChord) -> NotEq
-                             (UndefChord, _         ) -> NotEq
                              (_         , NoChord   ) -> NotEq
                              (NoChord   , _         ) -> NotEq
                              (gt, _) ->   chordRoot gt `rEq` chordRoot t
