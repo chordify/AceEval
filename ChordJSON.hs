@@ -14,12 +14,13 @@ import HarmTrace.Base.Parse
 
 -- | Parses a MIREX results file
 pChordJSON :: Year -> Collection -> Parser MChords
-pChordJSON y c'' = f <$> pHeader <*> pJSList pChordList <*> pFooter
-  where f (s, c, i) [gt,pd] (s', c', i', ["Ground-truth","Prediction"]) 
+pChordJSON y c'' = f <$> pHeader <*> pChordsPair <*> pFooter
+  where f (s, c, i) (gt,pd) (s', c', i', ["Ground-truth","Prediction"]) 
           | s == s' && c == c' && i == i' && c == c''
                       = MChords c y s i pd (Just gt)
           | otherwise = error "pChordJSON: conflicting meta data"
         f _  _  _     = error "pChordJSON: invalid MIREX Ace data"
+
 
 -- A header in the form: "var some_name = "
 pHeader :: Parser (String, Collection, Int)
@@ -46,24 +47,28 @@ pTeam :: Parser String
 pTeam = snoc <$> pBetween 1 4 pLetter <*> pDigit  <?> "team" where
   snoc l e = l ++ [e]
 
+pChordsPair :: Parser ([Timed ChordLabel],[Timed ChordLabel])
+pChordsPair = pBrackets ((,) <$> pChordList True <* pComma
+                             <*> pChordList True )
+  
 -- | parsers a single chords list
-pChordList :: Parser [Timed ChordLabel]
-pChordList = pJSList . pBraces $ pTimedChord
+pChordList :: Bool -> Parser [Timed ChordLabel]
+pChordList isGT = pJSList . pBraces $ pTimedChord isGT
 
 -- {o: 187.13, f: 190.522, l: "D:(9)", a: 0},
-pTimedChord :: Parser (Timed ChordLabel)
-pTimedChord = timedData <$> (pString "o: "   *> pDoubleRaw)
-                        <*> (pString ", f: " *> pDoubleRaw)
-                        <*> (pString ", l: \"" *> pMIREXChord   )
-                        <*   pString "\", a: " <* (pSym '0' <|> pSym '1') 
-                        <?> "Onset, offset and chord" where
-                        
-                        timedData on off c = Timed c [Time on, Time off]
+pTimedChord :: Bool -> Parser (Timed ChordLabel)
+pTimedChord isGT = timedData <$> (pString "o: "     *> pDoubleRaw)
+                             <*> (pString ", f: "   *> pDoubleRaw)
+                             <*> (pString ", l: \"" *> pMIREXChord isGT )
+                             <*   pString "\", a: " <* (pSym '0' <|> pSym '1') 
+                             <?> "Onset, offset and chord" where
+                             
+                             timedData on off c = Timed c [Time on, Time off]
 
                         
                         
-pMIREXChord :: Parser ChordLabel
-pMIREXChord = fixChord <$> pChord where
+pMIREXChord :: Bool -> Parser ChordLabel
+pMIREXChord isGT = fixChord <$> pChord where
   
   {- Fixes a bug in the NEMA framework. 
      As Johan pauwels explains in an email (10/10/2013): 
@@ -85,8 +90,9 @@ pMIREXChord = fixChord <$> pChord where
      manually (and that result was useless anyway). -}
   
     fixChord :: ChordLabel -> ChordLabel
-    fixChord (Chord (Note Sh F) SevSus4 _ _) = NoChord
-    fixChord c                               = c
+    fixChord c@(Chord (Note Sh F) SevSus4 _ _) | isGT      = c
+                                               | otherwise = NoChord
+    fixChord c                                             = c
                         
 -- replace by listparser?
 -- Parsers a typical javascript list: [elem, elem, etc.]
