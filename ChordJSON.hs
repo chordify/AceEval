@@ -48,8 +48,8 @@ pTeam = snoc <$> pBetween 1 4 pLetter <*> pDigit  <?> "team" where
   snoc l e = l ++ [e]
 
 pChordsPair :: Parser ([Timed ChordLabel],[Timed ChordLabel])
-pChordsPair = pBrackets ((,) <$> pChordList True <* pComma
-                             <*> pChordList True )
+pChordsPair = pBrackets ((,) <$> pChordList True <* pComma -- groundTruth
+                             <*> pChordList False )        -- prediction
   
 -- | parsers a single chords list
 pChordList :: Bool -> Parser [Timed ChordLabel]
