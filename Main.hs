@@ -91,7 +91,7 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
             Left  f -> if isJust p then void $ evaluateMChordsVerb pEq f 
                                    else evaluateMChords ef pp f
             Right d -> do t <- pTeam arg d y c
-                          void $ evaluateMirex ef weightOverlapRatio p t d y c 
+                          void $ evaluateMirex ef reportAvgWOR p t d y c 
 
 -- | Checks for either a directory or file argument, returns them in an Either
 -- or throws an error otherwise

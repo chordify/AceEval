@@ -22,6 +22,7 @@ module Evaluation (
     , overlapRatio
     , overlapRatioCol
     , weightOverlapRatio
+    , reportAvgWOR
     -- * Ground-truth wrapping
     , RefLab 
     , refLab
@@ -156,8 +157,9 @@ durations = foldr step (EqIDur 0 0 0) where
                NotEq  -> d {notEqs  = notEqs  d + duration t}
                Ignore -> d {ignores = ignores d + duration t}
                      
-totalDur :: EqIDur -> Double
-totalDur (EqIDur e n i) = e + n + i
+totalDur, noIgnoreDur :: EqIDur -> Double
+totalDur (EqIDur e n i)    = e + n + i
+noIgnoreDur (EqIDur e n i) = e + n
 
 sumDur :: [EqIDur] -> EqIDur
 sumDur = foldr1 step where
@@ -167,15 +169,31 @@ sumDur = foldr1 step where
 
 overlapRatio :: [Timed EqIgnore] -> Double
 overlapRatio es = let dur = durations es
-                  in equals dur / totalDur dur
+                  in equals dur / noIgnoreDur dur
 
 overlapRatioCol :: [[Timed EqIgnore]] -> Double
 overlapRatioCol es = sum (map overlapRatio es) / genericLength es
 
 weightOverlapRatio :: [[Timed EqIgnore]] -> Double
-weightOverlapRatio es = let dur = sumDur $ map durations es
-                        in equals dur / totalDur dur
-                  
+weightOverlapRatio es = let dur = sumDur . map durations $ es
+                        in equals dur / noIgnoreDur dur
+      
+printAvgWOR :: Show b => String -> (a -> b) -> a -> IO (b)
+printAvgWOR name ef es = do let r = ef es
+                            putStrLn (name ++ ": " ++ show r)
+                            return r
+      
+reportAvgWOR :: [[Timed EqIgnore]] -> IO (Double)
+reportAvgWOR es = 
+  let (EqIDur e n i) = sumDur . map durations $ es
+  in do putStrLn "==============================================="
+        putStrLn $ printf "Total duration equal:          \t%5.2f" e
+        putStrLn $ printf "Total duration not equal:      \t%5.2f" n
+        putStrLn $ printf "Total duration ignored:        \t%5.2f" i
+        let wcsr = weightOverlapRatio es
+        putStrLn $ printf "Chord sequence recall:         \t%.6f" (overlapRatioCol es)
+        putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
+        return wcsr
 --------------------------------------------------------------------------------
 -- Chord and key equality functions
 --------------------------------------------------------------------------------
@@ -253,10 +271,9 @@ chordCompare :: (Root -> Root -> EqIgnore)
              ->  RefLab -> ChordLabel -> EqIgnore
 chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord,    NoChord   ) -> Equal
-                             (UndefChord, UndefChord) -> Equal
-                             (UndefChord, NoChord   ) -> Ignore
+                             -- (UndefChord, NoChord   ) -> Ignore
+                             (UndefChord, _         ) -> Ignore
                              (_         , UndefChord) -> NotEq
-                             (UndefChord, _         ) -> NotEq
                              (_         , NoChord   ) -> NotEq
                              (NoChord   , _         ) -> NotEq
                              (gt, _) ->   chordRoot gt `rEq` chordRoot t
@@ -341,6 +358,8 @@ sampleAt (t:ts) (c:cs)
   | otherwise     = sampleAt (t:ts) cs         
 
   -}
+
+  
 -- TODO rename to chord symbol recall
   
 overlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
@@ -447,7 +466,8 @@ printEqStr eqf str gt test =
   do let eqi = gt `eqf` test
      putStrLn . (str ++) . intercalate " " $ [show gt, showEqi eqi, show test]
      return eqi
-   
+
+ 
    {-
 -- | Calculates the relative correct overlap, which is the recall
 -- of matching frames, and defined as the nr of matching frames (sampled at
