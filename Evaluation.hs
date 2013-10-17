@@ -45,8 +45,8 @@ module Evaluation (
     -- , printChordRCO
     -- , printRCO
     , printOverlapEval
-    -- * Sampling 
-    -- , sample
+    -- * Testing
+    , totalDurationCheck
   ) where
 
 import HarmTrace.Base.Time 
@@ -190,6 +190,8 @@ reportAvgWOR es =
         putStrLn $ printf "Total duration equal:          \t%5.2f" e
         putStrLn $ printf "Total duration not equal:      \t%5.2f" n
         putStrLn $ printf "Total duration ignored:        \t%5.2f" i
+        putStrLn $ printf "Total duration without ignored:\t%5.2f" (e+n)
+        putStrLn $ printf "Total duration with ignored:   \t%5.2f" (e+n+i)
         let wcsr = weightOverlapRatio es
         putStrLn $ printf "Chord sequence recall:         \t%.6f" (overlapRatioCol es)
         putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
@@ -358,7 +360,9 @@ sampleAt (t:ts) (c:cs)
   | otherwise     = sampleAt (t:ts) cs         
 
   -}
-
+  
+totalDurationCheck :: [Timed RefLab] -> [Timed ChordLabel] -> Double
+totalDurationCheck refs _ = offset . last $ refs
   
 -- TODO rename to chord symbol recall
   

@@ -91,8 +91,12 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
             Left  f -> if isJust p then void $ evaluateMChordsVerb pEq f 
                                    else evaluateMChords ef pp f
             Right d -> do t <- pTeam arg d y c
-                          void $ evaluateMirex ef reportAvgWOR p t d y c 
+                          void $ evaluateMirex ef reportAvgWOR p t d y c
+                          -- void $ evaluateMirex totalDurationCheck (printReturn . sum) Nothing t d y c 
 
+printReturn :: Show a => a -> IO (a)
+printReturn a = print a >> return a
+                          
 -- | Checks for either a directory or file argument, returns them in an Either
 -- or throws an error otherwise
 fileOrDir :: Args MirexArgs -> Either FilePath FilePath
