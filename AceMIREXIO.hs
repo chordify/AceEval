@@ -10,8 +10,8 @@ import ChordJSON
 import ChordLab
 import AceMIREX
 import Evaluation
-import HarmTrace.Base.Time           ( Timed (..), BeatTime (..), BeatTime (..)
-                                     , offset, onset, duration, pprint )
+import HarmTrace.Base.Time           ( Timed (..), BeatTime (..)
+                                     , offset, onset, duration, timed )
 import HarmTrace.Base.Chord          ( ChordLabel, Chord (..) )
 import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
 
@@ -114,30 +114,42 @@ parseChords pf txt = case parseDataWithErrors pf txt of
        (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
 
-data Edit = Fill | Zero ChordLabel
+data Edit = Fill | Zero ChordLabel | Rem ChordLabel
+data Source = Gt | Pred
 
+instance Show Source where
+  show Gt   = " (ground-truth)"
+  show Pred = ""
+  
 instance Show Edit where
   show Fill     = "hole in "
   show (Zero c) = "Zero length segment for " ++ show c ++ " "
+  show (Rem  c) = "Removed overlapping chord " ++ show c ++ " "
 
-data EditLog = EditLog Edit Collection Year String Int Double Double 
+data EditLog = EditLog Edit Collection Year String Int Source Double Double 
                        
 instance Show EditLog where
-  show (EditLog e c y t i on off) = 
+  show (EditLog e c y t i src on off) = 
     (show e ++ intercalate " " [show c, show y, t, show i] 
-            ++ ": " ++ show off ++ " - " ++ show on)
+            ++ show src ++ ": " ++ show on ++ " - " ++ show off)
                                 
-fillFromMChords :: MChords -> Timed ChordLabel -> EditLog
-fillFromMChords mc c = EditLog Fill (collection mc) (year mc) (team mc) 
-                               (songID mc) (onset c) (offset c)
+fillFromMChords :: Source -> MChords -> Timed ChordLabel -> EditLog
+fillFromMChords s mc c = fromMChords s Fill mc c
 
-zeroFromMChords :: MChords -> Timed ChordLabel -> EditLog
-zeroFromMChords mc c = EditLog (Zero (getData c)) (collection mc) (year mc) 
-                               (team mc) (songID mc) (onset c) (offset c)                               
-                       
+remFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
+remFromMChords s mc c = fromMChords s (Rem (getData c)) mc c
+
+zeroFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
+zeroFromMChords s mc c = fromMChords s (Zero (getData c)) mc c
+
+
+fromMChords :: Source ->  Edit -> MChords -> Timed ChordLabel -> EditLog
+fromMChords s e mc c = EditLog e (collection mc) (year mc) (team mc) (songID mc) 
+                               s (onset c)       (offset c)
+                               
 postProcess :: MChords -> IO MChords
-postProcess mc = do c  <- process . chords $ mc
-                    gt <- maybeIO process (groundTruth mc)
+postProcess mc = do c  <- process Pred . chords $ mc
+                    gt <- maybeIO (process Gt) (groundTruth mc)
                     
                     return mc { chords = c, groundTruth = gt } where
   
@@ -145,29 +157,35 @@ postProcess mc = do c  <- process . chords $ mc
   maybeIO f ma = case ma of Just a  -> f a >>= return . Just
                             Nothing -> return Nothing
   
-  process :: [Timed ChordLabel] -> IO [Timed ChordLabel]
-  process cs = do let (cs', es) = runState (fill cs >>= filterZeroLen) []
-                  mapM_ (putErrStrLn . show) es
-                  return cs'
+  process :: Source -> [Timed ChordLabel] -> IO [Timed ChordLabel]
+  process s cs = do let (cs', es) = runState (fill s cs >>= filterZeroLen s) []
+                    mapM_ (putErrStrLn . show) es
+                    return cs'
   
-  fill :: [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
-  fill cs = do foldrM step [] cs >>= return where
+  fill :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+  fill s cs = do foldrM step [] cs >>= return where
 
     step :: Timed ChordLabel ->[Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
     step a []     = return [a]
     step a (b:ts) 
-      | off == on =                   return (a        : b : ts)
-      | otherwise = modify (log :) >> return (a : hole : b : ts)
+      | off == on =                    return (a        : b : ts)
+        -- two segments are overlapping
+      | off >  on = modify (logR :) >> return (a'       : b : ts)
+        -- there is a "hole", an unmarked space, between two segments
+      | otherwise = modify (logH :) >> return (a : hole : b : ts) -- off < on
                        
            where off  = offset a
                  on   = onset  b 
-                 hole = Timed NoChord [Time off, Time on]
-                 log  = fillFromMChords mc hole
+                 hole = timed NoChord off on
+                 logH = fillFromMChords s mc hole
+                 a'   = timed (getData a) (onset a) on -- reset a's offset 
+                 logR = remFromMChords s mc (timed (getData a) on (offset a))
                  
-  filterZeroLen :: [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel] 
-  filterZeroLen td = do let (zero, good) = partition (\x -> duration x == 0) td
-                        modify ((map (zeroFromMChords mc) zero) ++)
-                        return good 
+                 
+  filterZeroLen :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel] 
+  filterZeroLen s td = do let (zero, good) = partition (\x -> duration x == 0) td
+                          modify ((map (zeroFromMChords s mc) zero) ++)
+                          return good 
                        
 -- | Applies an evaluation function to an 'MChords' 
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
