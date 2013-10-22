@@ -114,8 +114,12 @@ parseChords pf txt = case parseDataWithErrors pf txt of
        (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
 
-data Edit = Fill | AddUnk 
-          | Zero ChordLabel | Rem ChordLabel | RemEnd ChordLabel
+data Edit = Fill      ChordLabel 
+          | AddUnk    ChordLabel
+          | FillStart ChordLabel
+          | Zero      ChordLabel 
+          | Rem       ChordLabel 
+          | RemEnd    ChordLabel
 data Source = Gt | Pred
 
 instance Show Source where
@@ -123,11 +127,12 @@ instance Show Source where
   show Pred = ""
   
 instance Show Edit where
-  show Fill       = "hole in "
-  show (Zero c)   = "Zero length segment for " ++ show c ++ " "
-  show (Rem  c)   = "Removed overlapping chord " ++ show c ++ " "
-  show AddUnk     = "Extended the duration " 
-  show (RemEnd c) = "Removed final chord " ++ show c ++ " "
+  show (Fill      c) = "hole in " ++ show c ++ " "
+  show (Zero      c) = "Zero length segment for "  ++ show c ++ " "
+  show (Rem       c) = "Removed overlapping chord " ++ show c ++ " "
+  show (AddUnk    c) = "Extended the duration "           ++ show c ++ " "
+  show (RemEnd    c) = "Removed final chord "             ++ show c ++ " "
+  show (FillStart c) = "Reset the start position to 0.0 " ++ show c ++ " "
 
 data EditLog = EditLog Edit Collection Year String Int Source Double Double 
                        
@@ -135,25 +140,11 @@ instance Show EditLog where
   show (EditLog e c y t i src on off) = 
     (show e ++ intercalate " " [show c, show y, t, show i] 
             ++ show src ++ ": " ++ show on ++ " - " ++ show off)
-                                
-fillFromMChords :: Source -> MChords -> Timed ChordLabel -> EditLog
-fillFromMChords s mc c = fromMChords s Fill mc c
 
-remFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
-remFromMChords s mc c = fromMChords s (Rem (getData c)) mc c
-
-zeroFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
-zeroFromMChords s mc c = fromMChords s (Zero (getData c)) mc c
-
-addUnkFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
-addUnkFromMChords s mc c = fromMChords s AddUnk mc c
-
-remEndFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
-remEndFromMChords s mc c = fromMChords s (RemEnd (getData c)) mc c
-
-fromMChords :: Source ->  Edit -> MChords -> Timed ChordLabel -> EditLog
-fromMChords s e mc c = EditLog e (collection mc) (year mc) (team mc) (songID mc) 
-                               s (onset c)       (offset c)
+fromMChords :: (ChordLabel -> Edit) -> Source -> MChords -> Timed ChordLabel 
+            -> EditLog
+fromMChords e s mc c = EditLog (e . getData $ c) (collection mc) (year mc) 
+                               (team mc) (songID mc)  s (onset c) (offset c)
                                
 postProcess :: MChords -> IO MChords
 postProcess mc = do c  <- process Pred . chords $ mc
@@ -185,14 +176,14 @@ postProcess mc = do c  <- process Pred . chords $ mc
            where off  = offset a
                  on   = onset  b 
                  hole = timed NoChord off on
-                 logH = fillFromMChords s mc hole
+                 logH = fromMChords Fill s mc hole
                  a'   = timed (getData a) (onset a) on -- reset a's offset 
-                 logR = remFromMChords s mc (timed (getData a) on (offset a))
+                 logR = fromMChords Rem s mc (timed (getData a) on (offset a))
                  
                  
   filterZeroLen :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel] 
   filterZeroLen s td = do let (zero, good) = partition (\x -> duration x == 0) td
-                          modify ((map (zeroFromMChords s mc) zero) ++)
+                          modify ((map (fromMChords Zero s mc) zero) ++)
                           return good 
 
   fixEnd :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
@@ -200,11 +191,12 @@ postProcess mc = do c  <- process Pred . chords $ mc
   fixEnd Pred d = 
     let off = getEndTime . fromJust . groundTruth $ mc
     in case span (\x -> offset x < off) d of
-         (l,[ ]) -> do let add = timed UndefChord (getEndTime l) off
-                       modify (addUnkFromMChords Pred mc add :)
+         (l,[ ]) -> do --let add = timed UndefChord (getEndTime l) off
+                       let add = timed NoChord (getEndTime l) off
+                       modify (fromMChords AddUnk Pred mc add :)
                        return (l ++ [add])
          (l,h:t) -> do let (end, r) = splitTimed h off
-                       modify (map (remEndFromMChords Pred mc) (r:t) ++)
+                       modify (map (fromMChords RemEnd Pred mc) (r:t) ++)
                        return (l ++ [end])
 
   -- | Checks whether the first Timed element have the same onset, and applies
@@ -213,13 +205,13 @@ postProcess mc = do c  <- process Pred . chords $ mc
   fixStart _ [] = return []
   fixStart s d
     | on == 0.0 = return d
-    | otherwise = do modify (fillFromMChords s mc hole :)
+    | otherwise = do modify (fromMChords FillStart s mc hole :)
                      return (hole : d)
         
         where  on   = onset (head d)
                hole = timed (toChord s) 0.0 on 
                 
-               toChord Pred = UndefChord
+               toChord Pred = NoChord -- UndefChord
                toChord Gt   = NoChord
              
                        
