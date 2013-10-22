@@ -11,15 +11,15 @@ import ChordLab
 import AceMIREX
 import Evaluation
 import PreProcessing
-import HarmTrace.Base.Time           ( Timed (..), duration )
-import HarmTrace.Base.Chord          ( ChordLabel )
-import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
+import HarmTrace.Base.Time   ( Timed (..) )
+import HarmTrace.Base.Chord  ( ChordLabel )
+import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
 
-import Control.Monad                 ( when, zipWithM )
-import Data.Maybe                    ( isJust, fromJust )
-import System.Directory              ( getDirectoryContents )
-import System.FilePath               ( (</>) )
-import System.IO                     ( hPutStrLn, stderr )
+import Control.Monad         ( when )
+import Data.Maybe            ( isJust, fromJust )
+import System.Directory      ( getDirectoryContents )
+import System.FilePath       ( (</>) )
+import System.IO             ( hPutStrLn, stderr )
 import Control.Concurrent.ParallelIO.Global ( parallel )
 
 --------------------------------------------------------------------------------
@@ -100,10 +100,15 @@ readMChords fp =
      txt <- readFile fp 
      
      case f of 
-       JS  ->    postProcess . parseChords (pChordJSON y c) $ txt
-       LAB -> do gt  <- readFile (toFileName b y c "Ground-truth" i f)
-                 postProcess . parseChords (pGroundTruth 
-                           (parseChords (pLabMChords tm i y c) txt)) $ gt 
+       JS  ->    printPPLog show (postProcess . parseChords (pChordJSON y c)) txt
+       LAB -> do let pGT :: Parser MChords
+                     pGT = pGroundTruth (parseChords (pLabMChords tm i y c) txt)
+                 gt  <- readFile (toFileName b y c "Ground-truth" i f)
+                 printPPLog show (postProcess . parseChords pGT) gt 
+                        
+printPPLog :: ([PPLog] -> String) -> (a -> (b, [PPLog])) -> a -> IO b
+printPPLog pp f a = let (r, logs) = f a in do putErrStrLn (pp logs)
+                                              return r
                         
 parseChords :: Parser MChords -> String -> MChords
 parseChords pf txt = case parseDataWithErrors pf txt of
@@ -130,22 +135,3 @@ getCurDirectoryContents fp =
 putErrStrLn :: String -> IO ()
 putErrStrLn s = hPutStrLn stderr s
 
---------------------------------------------------------------------------------
--- Testing
---------------------------------------------------------------------------------
-
-testA, testB :: [String]
-testA = ["C:maj","C:min","C:dim","C:aug","C:maj","C#:maj","C:dim7","C:maj"
-        ,"C:maj","C:min","C:maj","C:dim","C:sus2","C:min","C:min"]
-testB = ["C:maj","C:min","C:dim","C:aug","C:min","Db:maj","C:(1,#2,#4,6)"
-        ,"C:(1,#2,#4,6)","C:(1,b3,5)","C:(1,#2,5)","C:maj7","C:sus2","C:sus4"
-        ,"C:dim","C:aug"]
-     
-testEq :: (ChordLabel -> ChordLabel -> EqIgnore) -> [String] -> [String] 
-       -> IO [EqIgnore]
-testEq eq a b = zipWithM eqIO a b where
-
-  eqIO :: String -> String -> IO EqIgnore
-  eqIO x y = do let r = eq (parseDataSafe pChord x) (parseDataSafe pChord y)
-                putStrLn (x ++ '\t' : y ++ '\t' : show r)
-                return r

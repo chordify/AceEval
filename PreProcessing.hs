@@ -1,5 +1,5 @@
 module PreProcessing ( Edit 
-                     , EditLog
+                     , PPLog
                      , postProcess
                      ) where
 
@@ -7,6 +7,7 @@ import AceMIREX
 import HarmTrace.Base.Time   ( Timed (..), BeatTime (..), splitTimed
                              , offset, onset, duration, timed )
 import HarmTrace.Base.Chord  ( ChordLabel, Chord (..) )
+import Control.Monad         ( liftM  )
 import Control.Monad.State   ( State, modify, runState )
 import Data.List             ( partition, intercalate )
 import Data.Maybe            ( fromJust )
@@ -32,37 +33,40 @@ instance Show Edit where
   show (RemEnd    c) = "Removed final chord "             ++ show c ++ " "
   show (FillStart c) = "Reset the start position to 0.0 " ++ show c ++ " "
 
-data EditLog = EditLog Edit Collection Year String Int Source Double Double 
+-- | Pre-Processing logging: a data type that stores all kinds of information
+-- to trace back the performed edit operation
+data PPLog = PPLog Edit Collection Year String Int Source Double Double 
                        
-instance Show EditLog where
-  show (EditLog e c y t i src on off) = 
+instance Show PPLog where
+  show (PPLog e c y t i src on off) = 
     (show e ++ intercalate " " [show c, show y, t, show i] 
             ++ show src ++ ": " ++ show on ++ " - " ++ show off)
 
+  showList l s = s ++ intercalate "\n" (map show l)
+            
 fromMChords :: (ChordLabel -> Edit) -> Source -> MChords -> Timed ChordLabel 
-            -> EditLog
-fromMChords e s mc c = EditLog (e . getData $ c) (collection mc) (year mc) 
+            -> PPLog
+fromMChords e s mc c = PPLog (e . getData $ c) (collection mc) (year mc) 
                                (team mc) (songID mc)  s (onset c) (offset c)
                                
-postProcess :: MChords -> IO MChords
-postProcess mc = do c  <- process Pred . chords $ mc
-                    gt <- maybeIO (process Gt) (groundTruth mc)
-                    
-                    return mc { chords = c, groundTruth = gt } where
+postProcess :: MChords -> (MChords, [PPLog])
+postProcess m = runState (postProcess' m) []
+                               
+postProcess' :: MChords -> State [PPLog] MChords
+postProcess' mc = do c  <- process Pred . chords $ mc
+                     gt <- maybeState (process Gt) . groundTruth $ mc
+                     return mc { chords = c, groundTruth = gt } where
   
-  process :: Source -> [Timed ChordLabel] -> IO [Timed ChordLabel]
-  process s cs = do let (cs', es) = runState fs []
-                        fs        = fill s cs >>= 
-                                    filterZeroLen s >>= 
-                                    fixStart s >>= 
-                                    fixEnd s
-                    mapM_ (putStrLn . show) es
-                    return cs'
+  process :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
+  process s cs = fill s cs >>= 
+                 filterZeroLen s >>= 
+                 fixStart s >>= 
+                 fixEnd s 
   
-  fill :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+  fill :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
   fill s cs = do foldrM step [] cs >>= return where
 
-    step :: Timed ChordLabel ->[Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+    step :: Timed ChordLabel ->[Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
     step a []     = return [a]
     step a (b:ts) 
       | off == on =                    return (a        : b : ts)
@@ -79,12 +83,12 @@ postProcess mc = do c  <- process Pred . chords $ mc
                  logR = fromMChords Rem s mc (timed (getData a) on (offset a))
                  
                  
-  filterZeroLen :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel] 
+  filterZeroLen :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel] 
   filterZeroLen s td = do let (zero, good) = partition (\x -> duration x == 0) td
                           modify ((map (fromMChords Zero s mc) zero) ++)
                           return good 
 
-  fixEnd :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+  fixEnd :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
   fixEnd Gt   d = return d -- don't fix any thing when processing ground-truth
   fixEnd Pred d = 
     let off = getEndTime . fromJust . groundTruth $ mc
@@ -99,7 +103,7 @@ postProcess mc = do c  <- process Pred . chords $ mc
 
   -- | Checks whether the first Timed element have the same onset, and applies
   -- chrossSegment.
-  fixStart :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+  fixStart :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
   fixStart _ [] = return []
   fixStart s d
     | on == 0.0 = return d
@@ -116,6 +120,6 @@ postProcess mc = do c  <- process Pred . chords $ mc
 getEndTime :: [Timed a] -> Double
 getEndTime = offset . last
   
-maybeIO :: (a -> IO b) -> Maybe a -> IO (Maybe b)
-maybeIO f ma = case ma of Just a  -> f a >>= return . Just
-                          Nothing -> return Nothing
+maybeState :: (a -> State b c) -> Maybe a -> State b (Maybe c)
+maybeState f ma = case ma of Just a  -> f a >>= return . Just
+                             Nothing -> return Nothing
