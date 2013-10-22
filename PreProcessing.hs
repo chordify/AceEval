@@ -1,6 +1,6 @@
 module PreProcessing ( Edit 
                      , PPLog
-                     , postProcess
+                     , preProcess
                      ) where
 
 import AceMIREX
@@ -12,7 +12,13 @@ import Control.Monad.State   ( State, modify, runState )
 import Data.List             ( partition, intercalate )
 import Data.Maybe            ( fromJust )
 import Data.Foldable         ( foldrM )
-                     
+       
+--------------------------------------------------------------------------------
+-- Error messages
+--------------------------------------------------------------------------------
+
+-- | The different edit operations that can be performed and logged during the
+-- pre-processing of the 'ChordLabel' sequences.
 data Edit = Fill      ChordLabel 
           | AddUnk    ChordLabel
           | FillStart ChordLabel
@@ -43,26 +49,34 @@ instance Show PPLog where
             ++ show src ++ ": " ++ show on ++ " - " ++ show off)
 
   showList l s = s ++ intercalate "\n" (map show l)
-            
+
+-- | Constructs a 'PPLog' pre-processing log
 fromMChords :: (ChordLabel -> Edit) -> Source -> MChords -> Timed ChordLabel 
             -> PPLog
 fromMChords e s mc c = PPLog (e . getData $ c) (collection mc) (year mc) 
                                (team mc) (songID mc)  s (onset c) (offset c)
+       
+--------------------------------------------------------------------------------
+-- Pre-processing 
+--------------------------------------------------------------------------------
+            
+-- | Pre-processes an 'MChords' and returns the updated 'MChords' together with
+-- a list of logged 'PPLog' 'Edit' operations.
+preProcess :: MChords -> (MChords, [PPLog])
+preProcess m = runState (preProcess' m) []
                                
-postProcess :: MChords -> (MChords, [PPLog])
-postProcess m = runState (postProcess' m) []
-                               
-postProcess' :: MChords -> State [PPLog] MChords
-postProcess' mc = do c  <- process Pred . chords $ mc
-                     gt <- maybeState (process Gt) . groundTruth $ mc
-                     return mc { chords = c, groundTruth = gt } where
+-- applies 'process' to both the predicted as well as the ground truth 
+-- chord sequence, if any.
+preProcess' :: MChords -> State [PPLog] MChords
+preProcess' mc = do c  <- process Pred . chords $ mc
+                    gt <- maybeState (process Gt) . groundTruth $ mc
+                    return mc { chords = c, groundTruth = gt } where
   
+  -- Performs a series of pre-processing operations
   process :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
-  process s cs = fill s cs >>= 
-                 filterZeroLen s >>= 
-                 fixStart s >>= 
-                 fixEnd s 
+  process s cs = fill s cs >>= filterZeroLen s >>= fixStart s >>= fixEnd s 
   
+  -- fill "holes" in a chord sequence
   fill :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
   fill s cs = do foldrM step [] cs >>= return where
 
@@ -82,12 +96,13 @@ postProcess' mc = do c  <- process Pred . chords $ mc
                  a'   = timed (getData a) (onset a) on -- reset a's offset 
                  logR = fromMChords Rem s mc (timed (getData a) on (offset a))
                  
-                 
+  -- remove chord segments that have a length of 0
   filterZeroLen :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel] 
   filterZeroLen s td = do let (zero, good) = partition (\x -> duration x == 0) td
                           modify ((map (fromMChords Zero s mc) zero) ++)
                           return good 
 
+  -- synchronises the last segment(s) of the prediction with the groundtruth
   fixEnd :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
   fixEnd Gt   d = return d -- don't fix any thing when processing ground-truth
   fixEnd Pred d = 
@@ -116,7 +131,10 @@ postProcess' mc = do c  <- process Pred . chords $ mc
                toChord Pred = NoChord -- UndefChord
                toChord Gt   = NoChord
              
-                       
+--------------------------------------------------------------------------------
+-- Utilities
+--------------------------------------------------------------------------------
+  
 getEndTime :: [Timed a] -> Double
 getEndTime = offset . last
   

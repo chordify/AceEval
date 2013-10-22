@@ -100,11 +100,11 @@ readMChords fp =
      txt <- readFile fp 
      
      case f of 
-       JS  ->    printPPLog show (postProcess . parseChords (pChordJSON y c)) txt
+       JS  ->    printPPLog show (preProcess . parseChords (pChordJSON y c)) txt
        LAB -> do let pGT :: Parser MChords
                      pGT = pGroundTruth (parseChords (pLabMChords tm i y c) txt)
                  gt  <- readFile (toFileName b y c "Ground-truth" i f)
-                 printPPLog show (postProcess . parseChords pGT) gt 
+                 printPPLog show (preProcess . parseChords pGT) gt 
                         
 printPPLog :: ([PPLog] -> String) -> (a -> (b, [PPLog])) -> a -> IO b
 printPPLog pp f a = let (r, logs) = f a in do putErrStrLn (pp logs)
