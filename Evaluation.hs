@@ -369,7 +369,7 @@ totalDurationCheck refs _ = offset . last $ refs
 overlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
             -> [Timed RefLab] -> [Timed ChordLabel] 
             -> [Timed EqIgnore] 
-overlapEval eq gt test = map eval $ crossSegResetFst gt test where
+overlapEval eq gt test = map eval $ crossSegment gt test where
   
   eval :: Timed (RefLab, ChordLabel) -> (Timed EqIgnore)
   eval dat = let (g,t) = getData dat in fmap (const (g `eq` t)) $ dat
@@ -377,14 +377,14 @@ overlapEval eq gt test = map eval $ crossSegResetFst gt test where
 printOverlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
                  -> [Timed RefLab] -> [Timed ChordLabel] 
                  -> IO [Timed EqIgnore] 
-printOverlapEval eq gt test = mapM eval $ crossSegResetFst gt test where
+printOverlapEval eq gt test = mapM eval $ crossSegment gt test where
   
   eval :: Timed (RefLab, ChordLabel) -> IO (Timed EqIgnore)
   eval dat = do let (g,t) = getData dat
                     tstr  = printf "%.3f\t%.3f: " (onset dat) (offset dat)
                 m <- printEqStr eq tstr g t
                 return . fmap (const m) $ dat
-
+{-
 -- | Checks whether the first Timed element have the same onset, and applies
 -- chrossSegment.
 crossSegResetFst :: [Timed RefLab] -> [Timed ChordLabel] 
@@ -399,7 +399,7 @@ crossSegResetFst gt ts
                    (Timed (RefLab UndefChord) [Time ot, Time og] : gt) ts
       where  og = onset . head $ gt
              ot = onset . head $ ts
-             
+  -}           
                 
 -- | Takes to Timed sequences and returns a Timed segment that zips
 -- the data stored in the sequences using the segmentation of both sequences:
@@ -410,7 +410,7 @@ crossSegResetFst gt ts
 -- >>> [ Timed {getData = ("a","1"), getTimeStamps = [(0.0),(4.0)]}
 --     , Timed {getData = ("b","1"), getTimeStamps = [(4.0),(5.0)]}]
 --
--- N.B. We assume both sequences start at 0.0
+-- N.B. We assume both sequences start at the same time
 crossSegment :: (Show a, Show b ) => [Timed a] -> [Timed b] 
              -> [Timed (a, b)]
 crossSegment [] []    = []

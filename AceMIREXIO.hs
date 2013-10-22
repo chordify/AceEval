@@ -114,7 +114,8 @@ parseChords pf txt = case parseDataWithErrors pf txt of
        (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
 
-data Edit = Fill | Zero ChordLabel | Rem ChordLabel | AddUnk | RemEnd ChordLabel
+data Edit = Fill | AddUnk 
+          | Zero ChordLabel | Rem ChordLabel | RemEnd ChordLabel
 data Source = Gt | Pred
 
 instance Show Source where
@@ -161,7 +162,11 @@ postProcess mc = do c  <- process Pred . chords $ mc
                     return mc { chords = c, groundTruth = gt } where
   
   process :: Source -> [Timed ChordLabel] -> IO [Timed ChordLabel]
-  process s cs = do let (cs', es) = runState (fill s cs >>= filterZeroLen s >>= fixEnd s) []
+  process s cs = do let (cs', es) = runState fs []
+                        fs        = fill s cs >>= 
+                                    filterZeroLen s >>= 
+                                    fixStart s >>= 
+                                    fixEnd s
                     mapM_ (putErrStrLn . show) es
                     return cs'
   
@@ -201,7 +206,23 @@ postProcess mc = do c  <- process Pred . chords $ mc
          (l,h:t) -> do let (end, r) = splitTimed h off
                        modify (map (remEndFromMChords Pred mc) (r:t) ++)
                        return (l ++ [end])
-                          
+
+  -- | Checks whether the first Timed element have the same onset, and applies
+  -- chrossSegment.
+  fixStart :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+  fixStart _ [] = return []
+  fixStart s d
+    | on == 0.0 = return d
+    | otherwise = do modify (fillFromMChords s mc hole :)
+                     return (hole : d)
+        
+        where  on   = onset (head d)
+               hole = timed (toChord s) 0.0 on 
+                
+               toChord Pred = UndefChord
+               toChord Gt   = NoChord
+             
+                       
 getEndTime :: [Timed a] -> Double
 getEndTime = offset . last
   
