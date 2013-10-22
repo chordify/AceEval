@@ -11,14 +11,11 @@ import ChordLab
 import AceMIREX
 import Evaluation
 import PreProcessing
-import HarmTrace.Base.Time           ( Timed (..), BeatTime (..), splitTimed
-                                     , offset, onset, duration, timed )
-import HarmTrace.Base.Chord          ( ChordLabel, Chord (..) )
+import HarmTrace.Base.Time           ( Timed (..), duration )
+import HarmTrace.Base.Chord          ( ChordLabel )
 import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
 
 import Control.Monad                 ( when, zipWithM )
-import Data.Foldable                 ( foldrM )
-import Data.List                     ( partition, intercalate )
 import Data.Maybe                    ( isJust, fromJust )
 import System.Directory              ( getDirectoryContents )
 import System.FilePath               ( (</>) )
