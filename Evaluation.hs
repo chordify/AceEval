@@ -41,12 +41,8 @@ module Evaluation (
     , (||*)
     , ignore
     , equal
-    -- * Displaying evaluations 
-    -- , printChordRCO
-    -- , printRCO
     , printOverlapEval
     -- * Testing
-    , totalDurationCheck
   ) where
 
 import HarmTrace.Base.Time 
@@ -157,9 +153,8 @@ durations = foldr step (EqIDur 0 0 0) where
                NotEq  -> d {notEqs  = notEqs  d + duration t}
                Ignore -> d {ignores = ignores d + duration t}
                      
-totalDur, noIgnoreDur :: EqIDur -> Double
-totalDur (EqIDur e n i)    = e + n + i
-noIgnoreDur (EqIDur e n i) = e + n
+noIgnoreDur :: EqIDur -> Double
+noIgnoreDur (EqIDur e n _i) = e + n
 
 sumDur :: [EqIDur] -> EqIDur
 sumDur = foldr1 step where
@@ -177,11 +172,6 @@ overlapRatioCol es = sum (map overlapRatio es) / genericLength es
 weightOverlapRatio :: [[Timed EqIgnore]] -> Double
 weightOverlapRatio es = let dur = sumDur . map durations $ es
                         in equals dur / noIgnoreDur dur
-      
-printAvgWOR :: Show b => String -> (a -> b) -> a -> IO (b)
-printAvgWOR name ef es = do let r = ef es
-                            putStrLn (name ++ ": " ++ show r)
-                            return r
       
 reportAvgWOR :: [[Timed EqIgnore]] -> IO (Double)
 reportAvgWOR es = 
@@ -296,8 +286,8 @@ mirex2010 (RefLab gt)         test       =
 
       bassMatch :: IntSet -> ChordLabel -> Int
       bassMatch _ (Chord _ _ _ (Note Nat I1)) = 0
-      bassMatch p c | bassPC c `member` p     = 1
-                    | otherwise               = 0
+      bassMatch is c | bassPC c `member` is   = 1
+                     | otherwise              = 0
                    
       gtpc  = pc . toPitchClasses $ gt
       tstpc = pc . toPitchClasses $ test
@@ -314,55 +304,6 @@ mirex2010 (RefLab gt)         test       =
 --------------------------------------------------------------------------------
 -- Evaluation functions
 --------------------------------------------------------------------------------  
- {- 
--- | Calculates the relative correct overlap, which is the recall
--- of matching frames, and defined as the nr of matching frames (sampled at
--- an 10 millisecond interval) divided by all frames. The first argument 
--- specifies the kind of equality, the second argument should be a
--- reference ground truth annotation, and the third argument specifies the
--- evaluated (machine) annotation.
-relCorrectOverlap :: (RefLab -> ChordLabel -> EqIgnore) 
-                  -> [Timed RefLab] -> [Timed ChordLabel] 
-                  -> Double
-relCorrectOverlap eq gt test = 
-  let samgt = sample gt
-      samt  = sample test 
-  in case  maxCompare eq samgt of
-       0 -> 0 -- just output 0 of the maximum match is 0
-       m -> foldr countMatch 0 (zipWith eq samgt samt) / m
-
-countMatch :: EqIgnore -> Double -> Double
-countMatch Equal x = succ x -- count the number of matching frames
-countMatch _     x = x
-
--- Returns the maximal number of elements that can be correctly annotated.
--- Given an 'EqIgnore' equality function, it compares a sequence to itself.
--- Next we all 'Ignore's are removed and the length of the list is returned
-maxCompare :: Num n => (RefLab -> ChordLabel -> EqIgnore) -> [RefLab] -> n
-maxCompare eq gt = genericLength . filter (not . ignore)
-                                 $ zipWith eq gt (map refLab gt)
-             
--- | Given a chord annotation sample the chord label at every 10 ms
-sample :: [Timed a]-> [a]
-sample = sampleWith evaluationSampleRate
-
--- like sample, but takes a sample rate (seconds :: Float) as argument
-sampleWith :: NumData -> [Timed a] -> [a]
-sampleWith rate =  sampleAt [0.00, rate .. ] 
-
-        
--- samples at specific points in time, specified in a list
-sampleAt :: [NumData] -> [Timed a] -> [a]
-sampleAt  _  [] = [] -- below, will never occur
-sampleAt []  _  = error "Harmtrace.Audio.Evaluation: No sampling grid specified" 
-sampleAt (t:ts) (c:cs)
-  | t <= offset c = getData c : sampleAt ts (c:cs)
-  | otherwise     = sampleAt (t:ts) cs         
-
-  -}
-  
-totalDurationCheck :: [Timed RefLab] -> [Timed ChordLabel] -> Double
-totalDurationCheck refs _ = offset . last $ refs
   
 -- TODO rename to chord symbol recall
   
@@ -384,22 +325,7 @@ printOverlapEval eq gt test = mapM eval $ crossSegment gt test where
                     tstr  = printf "%.3f\t%.3f: " (onset dat) (offset dat)
                 m <- printEqStr eq tstr g t
                 return . fmap (const m) $ dat
-{-
--- | Checks whether the first Timed element have the same onset, and applies
--- chrossSegment.
-crossSegResetFst :: [Timed RefLab] -> [Timed ChordLabel] 
-                 -> [Timed (RefLab, ChordLabel)]
-crossSegResetFst [] _ = []
-crossSegResetFst _ [] = []
-crossSegResetFst gt ts
-  | og == ot  = crossSegment gt ts
-  | og <  ot  = crossSegment -- crossSegResetFst 
-                gt (Timed UndefChord          [Time og, Time ot] : ts)
-  | otherwise = crossSegment -- crossSegResetFst 
-                   (Timed (RefLab UndefChord) [Time ot, Time og] : gt) ts
-      where  og = onset . head $ gt
-             ot = onset . head $ ts
-  -}           
+         
                 
 -- | Takes to Timed sequences and returns a Timed segment that zips
 -- the data stored in the sequences using the segmentation of both sequences:
@@ -473,20 +399,3 @@ printEqStr eqf str gt test =
      return eqi
 
  
-   {-
--- | Calculates the relative correct overlap, which is the recall
--- of matching frames, and defined as the nr of matching frames (sampled at
--- an interval set in 'ChordTrack.Constants') divided by all frames.
--- This functions differs from 'relCorrectOverlap' in that it runs in IO and
--- prints the comparison to the user.
-printRCO :: (RefLab -> ChordLabel -> EqIgnore) 
-         -> [Timed RefLab] -> [Timed ChordLabel] -> IO (Double)
-printRCO eqi gt test = 
-  do let samgt = sampleWith displaySampleRate gt
-         sam   = sampleWith displaySampleRate test
-         pEq ts a b = printEqStr eqi (printf "%.2f: " ts) a b
-         
-     matches <- sequence $ zipWith3 pEq [0,displaySampleRate ..] samgt sam
-     return (foldr countMatch 0 matches / maxCompare eqi samgt)
-     -}
-     

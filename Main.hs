@@ -92,7 +92,6 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
                                    else evaluateMChords ef pp f
             Right d -> do t <- pTeam arg d y c
                           void $ evaluateMirex ef reportAvgWOR p t d y c
-                          -- void $ evaluateMirex totalDurationCheck (printReturn . sum) Nothing t d y c 
 
 printReturn :: Show a => a -> IO (a)
 printReturn a = print a >> return a
