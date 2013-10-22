@@ -10,7 +10,7 @@ import ChordJSON
 import ChordLab
 import AceMIREX
 import Evaluation
-import HarmTrace.Base.Time           ( Timed (..), BeatTime (..)
+import HarmTrace.Base.Time           ( Timed (..), BeatTime (..), splitTimed
                                      , offset, onset, duration, timed )
 import HarmTrace.Base.Chord          ( ChordLabel, Chord (..) )
 import HarmTrace.Base.Parse          ( parseDataSafe, parseDataWithErrors, pChord, Parser )
@@ -114,7 +114,7 @@ parseChords pf txt = case parseDataWithErrors pf txt of
        (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
                        "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
 
-data Edit = Fill | Zero ChordLabel | Rem ChordLabel
+data Edit = Fill | Zero ChordLabel | Rem ChordLabel | AddUnk | RemEnd ChordLabel
 data Source = Gt | Pred
 
 instance Show Source where
@@ -122,9 +122,11 @@ instance Show Source where
   show Pred = ""
   
 instance Show Edit where
-  show Fill     = "hole in "
-  show (Zero c) = "Zero length segment for " ++ show c ++ " "
-  show (Rem  c) = "Removed overlapping chord " ++ show c ++ " "
+  show Fill       = "hole in "
+  show (Zero c)   = "Zero length segment for " ++ show c ++ " "
+  show (Rem  c)   = "Removed overlapping chord " ++ show c ++ " "
+  show AddUnk     = "Extended the duration " 
+  show (RemEnd c) = "Removed final chord " ++ show c ++ " "
 
 data EditLog = EditLog Edit Collection Year String Int Source Double Double 
                        
@@ -142,6 +144,11 @@ remFromMChords s mc c = fromMChords s (Rem (getData c)) mc c
 zeroFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
 zeroFromMChords s mc c = fromMChords s (Zero (getData c)) mc c
 
+addUnkFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
+addUnkFromMChords s mc c = fromMChords s AddUnk mc c
+
+remEndFromMChords :: Source ->  MChords -> Timed ChordLabel -> EditLog
+remEndFromMChords s mc c = fromMChords s (RemEnd (getData c)) mc c
 
 fromMChords :: Source ->  Edit -> MChords -> Timed ChordLabel -> EditLog
 fromMChords s e mc c = EditLog e (collection mc) (year mc) (team mc) (songID mc) 
@@ -153,12 +160,8 @@ postProcess mc = do c  <- process Pred . chords $ mc
                     
                     return mc { chords = c, groundTruth = gt } where
   
-  maybeIO :: (a -> IO b) -> Maybe a -> IO (Maybe b)
-  maybeIO f ma = case ma of Just a  -> f a >>= return . Just
-                            Nothing -> return Nothing
-  
   process :: Source -> [Timed ChordLabel] -> IO [Timed ChordLabel]
-  process s cs = do let (cs', es) = runState (fill s cs >>= filterZeroLen s) []
+  process s cs = do let (cs', es) = runState (fill s cs >>= filterZeroLen s >>= fixEnd s) []
                     mapM_ (putErrStrLn . show) es
                     return cs'
   
@@ -186,7 +189,26 @@ postProcess mc = do c  <- process Pred . chords $ mc
   filterZeroLen s td = do let (zero, good) = partition (\x -> duration x == 0) td
                           modify ((map (zeroFromMChords s mc) zero) ++)
                           return good 
-                       
+
+  fixEnd :: Source -> [Timed ChordLabel] -> State [EditLog] [Timed ChordLabel]
+  fixEnd Gt   d = return d -- don't fix any thing when processing ground-truth
+  fixEnd Pred d = 
+    let off = getEndTime . fromJust . groundTruth $ mc
+    in case span (\x -> offset x < off) d of
+         (l,[ ]) -> do let add = timed UndefChord (getEndTime l) off
+                       modify (addUnkFromMChords Pred mc add :)
+                       return (l ++ [add])
+         (l,h:t) -> do let (end, r) = splitTimed h off
+                       modify (map (remEndFromMChords Pred mc) (r:t) ++)
+                       return (l ++ [end])
+                          
+getEndTime :: [Timed a] -> Double
+getEndTime = offset . last
+  
+maybeIO :: (a -> IO b) -> Maybe a -> IO (Maybe b)
+maybeIO f ma = case ma of Just a  -> f a >>= return . Just
+                          Nothing -> return Nothing
+
 -- | Applies an evaluation function to an 'MChords' 
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
 evaluate ef mc = case groundTruth mc of
