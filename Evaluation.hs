@@ -413,8 +413,9 @@ crossSegResetFst gt ts
 -- N.B. We assume both sequences start at 0.0
 crossSegment :: (Show a, Show b ) => [Timed a] -> [Timed b] 
              -> [Timed (a, b)]
-crossSegment []  _    = []
-crossSegment _  []    = []
+crossSegment [] []    = []
+crossSegment []  _    = error "crossSegment: comparing sequences of different lengths"
+crossSegment _  []    = error "crossSegment: comparing sequences of different lengths"
 crossSegment (g:gt) (t:ts)
   | og == ot  = fmap r g : crossSegment     gt     ts
   | og <  ot  = fmap r g : crossSegment     gt (rt:ts)
