@@ -302,11 +302,7 @@ mirex2010 _                   UndefChord = NotEq
 mirex2010 (RefLab NoChord)    _          = NotEq
 mirex2010 _                   NoChord    = NotEq
 mirex2010 (RefLab gt)         test       = 
-  let -- Replaced the bassnote by the first inversion (root note)      
-      -- removeBass :: ChordLabel -> ChordLabel
-      -- removeBass (Chord r sh add _b) = Chord r sh add (Note Nat I1)
-
-      bassMatch :: IntSet -> ChordLabel -> Int
+  let bassMatch :: IntSet -> ChordLabel -> Int
       bassMatch _ (Chord _ _ _ (Note Nat I1)) = 0
       bassMatch is c | bassPC c `member` is   = 1
                      | otherwise              = 0
