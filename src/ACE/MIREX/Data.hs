@@ -1,17 +1,17 @@
-module AceMIREX  ( Collection (..)
-                 , Year (..)
-                 , Format (..)
-                 , Team
-                 , MChords (..)
-                 -- , getFormat
-                 , fromFileName
-                 , toFileName
-                 -- , toLabGT
-                 , toYear
-                 , toCollection
-                 , toFormat
-                 , errorise
-                 ) where
+module ACE.MIREX.Data  ( Collection (..)
+                       , Year (..)
+                       , Format (..)
+                       , Team
+                       , MChords (..)
+                       -- , getFormat
+                       , fromFileName
+                       , toFileName
+                       -- , toLabGT
+                       , toYear
+                       , toCollection
+                       , toFormat
+                       , errorise
+                       ) where
                  
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )

@@ -13,7 +13,7 @@
 --------------------------------------------------------------------------------
 
 
-module Evaluation (
+module ACE.Evaluation (
     -- * Evaluation functions
       -- relCorrectOverlap
       chordChangeRatio

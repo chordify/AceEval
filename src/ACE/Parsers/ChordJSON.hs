@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ChordJSON                     ( pChordJSON )where
+module ACE.Parsers.ChordJSON         ( pChordJSON )where
 
-import AceMIREX
+import ACE.MIREX.Data
 import HarmTrace.Base.Time           ( Timed (..), BeatTime (..) )
 import HarmTrace.Base.Chord          
 import HarmTrace.Base.Parse          

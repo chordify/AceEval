@@ -1,9 +1,10 @@
-module PreProcessing ( Edit 
-                     , PPLog
-                     , preProcess
-                     ) where
+module ACE.MIREX.PreProcessing ( Edit 
+                               , PPLog
+                               , preProcess
+                               ) where
 
-import AceMIREX
+import ACE.MIREX.Data
+
 import HarmTrace.Base.Time   ( Timed (..), BeatTime (..), splitTimed
                              , offset, onset, duration, timed )
 import HarmTrace.Base.Chord  ( ChordLabel, Chord (..) )

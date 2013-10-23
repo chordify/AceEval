@@ -1,16 +1,17 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module AceMIREXIO  ( evaluateMChords
-                   , evaluateMChordsVerb
-                   , evaluateMirex
-                   ) where
+module ACE.MIREX.IO  ( evaluateMChords
+                     , evaluateMChordsVerb
+                     , evaluateMirex
+                     ) where
 
-import ChordJSON
-import ChordLab
-import AceMIREX
-import Evaluation
-import PreProcessing
+import ACE.Parsers.ChordJSON
+import ACE.Parsers.ChordLab
+import ACE.MIREX.Data
+import ACE.MIREX.PreProcessing
+import ACE.Evaluation
+
 import HarmTrace.Base.Time   ( Timed (..) )
 import HarmTrace.Base.Chord  ( ChordLabel )
 import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )

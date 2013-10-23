@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
 module Main where
 
--- other libraries
-import System.Console.ParseArgs
-import AceMIREX
-import AceMIREXIO
-import Evaluation
+import ACE.MIREX
+import ACE.Evaluation
 import HarmTrace.Base.Chord       ( ChordLabel )
 import HarmTrace.Base.Time        ( Timed )
+
+-- other libraries
+import System.Console.ParseArgs
 import Control.Monad              ( void )
 import System.FilePath            ( (</>) )
 import System.Directory           ( doesDirectoryExist )
