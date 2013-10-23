@@ -140,6 +140,7 @@ pVocMap arg = case getRequiredArg arg VocabularyMapping of
                 "mirex2010" -> mirex2010
                 "majMin"    -> majMinEq
                 "root"      -> rootOnlyEq
+                "bass"      -> bassOnlyEq
                 m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)
 
 pFormat :: Args MirexArgs -> Format

@@ -29,6 +29,7 @@ module Evaluation (
     , makeGT
     -- * Chord and key equality functions
     , rootOnlyEq
+    , bassOnlyEq
     , majMinEq
     -- , triadEq
     , mirex2010
@@ -205,6 +206,12 @@ makeGT = map (fmap RefLab)
 
 rootOnlyEq :: RefLab -> ChordLabel -> EqIgnore
 rootOnlyEq gt test = chordCompare rootEq (\_ _ -> Equal) gt test -- Ignore all but root
+
+bassOnlyEq :: RefLab -> ChordLabel -> EqIgnore
+bassOnlyEq gt test = chordCompare (\_ _ -> Equal) bassEq gt test where
+
+  bassEq :: RefLab -> ChordLabel -> EqIgnore
+  bassEq (RefLab gt') test' = bassPC gt' ==* bassPC test'
 
 -- | enharmonic equality for 'Root' 'Note's, N == N, X == X, and G# == Ab
 rootEq :: Root -> Root -> EqIgnore
