@@ -259,16 +259,26 @@ majMinEq gt test = chordCompare rootEq majMin gt test
 -- either moth major or both minor. "None Chords" match only with other "None
 -- Chords" and with nothing else
 triadEq :: RefLab -> ChordLabel -> EqIgnore
-triadEq gt test = chordCompare rootEq triadEq gt test where
+triadEq gt test = chordCompare rootEq triadEqI gt test where
 
-  triadEq :: RefLab -> ChordLabel -> EqIgnore
-  triadEq (RefLab x) y = case (toTriad x, toTriad y) of
-     (NoTriad, NoTriad) -> toEqIgnore ((isSus2 x && isSus2 y)
-                                    || (isSus4 x && isSus4 y))
+  triadEqI :: RefLab -> ChordLabel -> EqIgnore
+  triadEqI (RefLab x) y = case (toTriad x, toTriad y) of
+     (NoTriad, NoTriad) -> susEq x y
      (NoTriad, _      ) -> NotEq
      (_      , NoTriad) -> NotEq
      (tx     , ty     ) -> tx ==* ty 
                    
+                   
+  susEq :: ChordLabel -> ChordLabel -> EqIgnore
+  susEq a b | isSus2 a     = toEqIgnore (isSus2 b)
+            | isSus4 a     = toEqIgnore (isSus4 b)
+            -- | isRootOnly a = toEqIgnore (isRootOnly b)
+            | otherwise    = NotEq
+
+  -- isRootOnly :: ChordLabel -> Bool
+  -- isRootOnly (Chord _ None [] _ ) = True
+  -- isRootOnly _                    = False
+  
 -- compares the 'NoChord' and 'UndefChord' cases, such that this does not have
 -- to be replicated in all Eq's
 chordCompare :: (Root -> Root -> EqIgnore) 
@@ -276,7 +286,6 @@ chordCompare :: (Root -> Root -> EqIgnore)
              ->  RefLab -> ChordLabel -> EqIgnore
 chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord,    NoChord   ) -> Equal
-                             -- (UndefChord, NoChord   ) -> Ignore
                              (UndefChord, _         ) -> Ignore
                              (_         , UndefChord) -> NotEq
                              (_         , NoChord   ) -> NotEq
