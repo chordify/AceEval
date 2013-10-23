@@ -5,10 +5,9 @@ module ACE.MIREX.PreProcessing ( Edit
 
 import ACE.MIREX.Data
 
-import HarmTrace.Base.Time   ( Timed (..), BeatTime (..), splitTimed
+import HarmTrace.Base.Time   ( Timed (..), splitTimed
                              , offset, onset, duration, timed )
 import HarmTrace.Base.Chord  ( ChordLabel, Chord (..) )
-import Control.Monad         ( liftM  )
 import Control.Monad.State   ( State, modify, runState )
 import Data.List             ( partition, intercalate )
 import Data.Maybe            ( fromJust )
