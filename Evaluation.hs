@@ -31,7 +31,7 @@ module Evaluation (
     , rootOnlyEq
     , bassOnlyEq
     , majMinEq
-    -- , triadEq
+    , triadEq
     , mirex2010
     -- * Small Evaluation Logic
     , EqIgnore
@@ -135,6 +135,10 @@ ignore _      = False
 equal  :: EqIgnore -> Bool
 equal  Equal  = True
 equal  _      = False
+
+toEqIgnore :: Bool -> EqIgnore
+toEqIgnore True = Equal
+toEqIgnore _    = NotEq
 
 --------------------------------------------------------------------------------
 -- Summarising the durations EqIgnores
@@ -250,18 +254,20 @@ majMinEq gt test = chordCompare rootEq majMin gt test
                        -- cannot happen
                        _ -> error "majMin: unexpected chord class"
 
-                       {-
+
 -- | Returns True if both 'ChordLabel's are equal at the triad level: they are
 -- either moth major or both minor. "None Chords" match only with other "None
 -- Chords" and with nothing else
-triadEq :: ChordLabel -> ChordLabel -> EqIgnore
-triadEq a b =   chordRoot a  `rootEq` chordRoot b &&* triadEqI a b where
+triadEq :: RefLab -> ChordLabel -> EqIgnore
+triadEq gt test = chordCompare rootEq triadEq gt test where
 
-  triadEqI x y = case (toTriad x, toTriad y) of
-                   (NoTriad, _      ) -> Ignore
-                   (_      , NoTriad) -> Ignore
-                   (tx     , ty     ) -> tx ==* ty 
--}
+  triadEq :: RefLab -> ChordLabel -> EqIgnore
+  triadEq (RefLab x) y = case (toTriad x, toTriad y) of
+     (NoTriad, NoTriad) -> toEqIgnore ((isSus2 x && isSus2 y)
+                                    || (isSus4 x && isSus4 y))
+     (NoTriad, _      ) -> NotEq
+     (_      , NoTriad) -> NotEq
+     (tx     , ty     ) -> tx ==* ty 
                    
 -- compares the 'NoChord' and 'UndefChord' cases, such that this does not have
 -- to be replicated in all Eq's
