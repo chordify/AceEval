@@ -26,11 +26,12 @@ module ACE.Evaluation.Func (
 
 import ACE.Evaluation.EqIgnore
 import ACE.Evaluation.ChordEq
+import ACE.Evaluation.ChordMaps
     
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
 
-import Data.List                 ( genericLength, intercalate )
+import Data.List                 ( genericLength, intercalate, unzip5 )
 
 import Data.Foldable             ( foldrM )
 import Control.Monad.State       ( State, execState, modify )
@@ -88,6 +89,18 @@ reportAvgWOR es =
         putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
         return wcsr
         
+type TimedCCEval = ( [[Timed EqIgnore]] -- root
+                   , [[Timed EqIgnore]] -- majmin
+                   , [[Timed EqIgnore]] -- seventh
+                   , [[Timed EqIgnore]] -- majmin inv
+                   , [[Timed EqIgnore]] ) -- seventh inv
+        
+unzipCCEval :: [[Timed CCEval]] -> TimedCCEval
+unzipCCEval = unzip5 . map (unzip5 . map unzipTimed)
+
+unzipTimed :: Timed CCEval -> (Timed EqIgnore, Timed EqIgnore, Timed EqIgnore, Timed EqIgnore, Timed EqIgnore)
+unzipTimed td = let (r, m, s, mi, si) = getData td
+                in (setData td r, setData td m, setData td s, setData td mi, setData td si)
 --------------------------------------------------------------------------------
 -- Evaluation functions
 --------------------------------------------------------------------------------  

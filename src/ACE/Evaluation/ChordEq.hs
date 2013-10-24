@@ -27,6 +27,7 @@ module ACE.Evaluation.ChordEq (
   ) where
 
 import ACE.Evaluation.EqIgnore
+import ACE.Evaluation.ChordMaps
   
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
@@ -116,10 +117,17 @@ triadEq gt test = chordCompare rootEq triadEqI gt test where
             | isSus4 a     = toEqIgnore (isSus4 b)
             -- | isRootOnly a = toEqIgnore (isRootOnly b)
             | otherwise    = NotEq
+            
+  
+chordClassEq :: RefLab -> ChordLabel -> CCEval
+chordClassEq gt test = case (refLab gt, test) of
+   (NoChord,    NoChord   ) -> toCCEval Equal
+   (UndefChord, _         ) -> toCCEval Ignore
+   (_         , UndefChord) -> toCCEval NotEq
+   (_         , NoChord   ) -> toCCEval NotEq
+   (NoChord   , _         ) -> toCCEval NotEq
+   (gt        , _         ) -> compareCC (toChordClass gt) (toChordClass test)
 
-  -- isRootOnly :: ChordLabel -> Bool
-  -- isRootOnly (Chord _ None [] _ ) = True
-  -- isRootOnly _                    = False
   
 -- compares the 'NoChord' and 'UndefChord' cases, such that this does not have
 -- to be replicated in all Eq's
