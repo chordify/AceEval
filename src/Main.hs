@@ -82,8 +82,8 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
               p  = pVerb arg pp
               ef = pVocMap arg 
               -- ef = overlapEval vm 
-              pp = const 1
-              -- pp = overlapRatio
+              -- pp = const 1
+              pp = overlapRatioCCEval
               
               -- pEq :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
               -- pEq a b = printOverlapEval vm a b >>= return . pp
@@ -113,7 +113,7 @@ fileOrDir arg = case ( getArg arg MirexFilepath, getArg arg MirexDir
    (_     , _     , _      , _     ) 
       -> usageError arg "No directory or file specified"
 
-pVerb :: Args MirexArgs -> (a -> Double) -> Maybe (a -> Double)
+pVerb :: Args MirexArgs -> (a -> b) -> Maybe (a -> b)
 pVerb arg f | gotArg arg Print = Just f
             | otherwise        = Nothing
       

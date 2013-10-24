@@ -21,7 +21,7 @@ module ACE.Evaluation.Func (
     , weightOverlapRatio
     , reportAvgWOR
     , reportMIREX13
-    
+    , overlapRatioCCEval
     , printOverlapEval
     ) where
 
@@ -90,10 +90,8 @@ reportAvgWOR es =
         putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
         return wcsr
         
--- unzipCCEval :: [Timed (CCEval EqIgnore)] -> CCEval (Timed [EqIgnore]) 
--- unzipCCEval = unzipTimed . map unzipTimed
--- unzipCCEval = unzip5 . map (unzip5 . map unzipTimed)
 
+        
 -- TODO perhaps nicer solved by implementing Traversable, and use sequenceA)
 unzipTimed :: Functor f => Timed (f a) -> f (Timed a)
 unzipTimed td = fmap (setData td) . getData $ td 
@@ -102,8 +100,11 @@ reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO (CCEval Double)
 reportMIREX13 ce = 
   do let r = fmap weightOverlapRatio . unzipCCEval 
             . map (unzipCCEval . map unzipTimed) $ ce
-     print r >> return r
+     putStrLn "==============================================="
+     print r >> putStrLn "" >> return r
       
+overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
+overlapRatioCCEval = fmap overlapRatio . unzipCCEval . map unzipTimed
 
 
 --------------------------------------------------------------------------------
