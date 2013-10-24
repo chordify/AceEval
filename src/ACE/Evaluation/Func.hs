@@ -15,10 +15,7 @@
 
 module ACE.Evaluation.Func (
     -- * Evaluation functions
-      -- relCorrectOverlap
-      chordChangeRatio
-    , avgDistToOne
-    , overlapEval
+      overlapEval
     , overlapRatio
     , overlapRatioCol
     , weightOverlapRatio
@@ -97,20 +94,20 @@ reportAvgWOR es =
   
 -- TODO rename to chord symbol recall
   
-overlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
+overlapEval :: (RefLab -> ChordLabel -> a) 
             -> [Timed RefLab] -> [Timed ChordLabel] 
-            -> [Timed EqIgnore] 
+            -> [Timed a] 
 overlapEval eq gt test = map eval $ crossSegment gt test where
   
-  eval :: Timed (RefLab, ChordLabel) -> (Timed EqIgnore)
+  -- eval :: Timed (RefLab, ChordLabel) -> (Timed a)
   eval dat = let (g,t) = getData dat in fmap (const (g `eq` t)) $ dat
   
-printOverlapEval :: (RefLab -> ChordLabel -> EqIgnore) 
+printOverlapEval :: Show a => (RefLab -> ChordLabel -> a) 
                  -> [Timed RefLab] -> [Timed ChordLabel] 
-                 -> IO [Timed EqIgnore] 
+                 -> IO [Timed a] 
 printOverlapEval eq gt test = mapM eval $ crossSegment gt test where
   
-  eval :: Timed (RefLab, ChordLabel) -> IO (Timed EqIgnore)
+  -- eval :: Timed (RefLab, ChordLabel) -> IO (Timed a)
   eval dat = do let (g,t) = getData dat
                     tstr  = printf "%.3f\t%.3f: " (onset dat) (offset dat)
                 m <- printEqStr eq tstr g t
@@ -143,36 +140,6 @@ crossSegment (g:gt) (t:ts)
            rg = snd $ splitTimed g ot
            r  = const (getData g, getData t)
 
-  
--- | calculates the number of chord changes in the ground-truth divided 
--- by the number of chord changes in the machine annotation. A number < 1 
--- indicates that the machine annotation misses some chord changes. A number
--- > 1 indicates that the machine annotation finds to many chord sequences.
-chordChangeRatio ::  (ChordLabel -> ChordLabel -> EqIgnore) 
-                 -> [Timed ChordLabel] -> [Timed ChordLabel] -> Double
-chordChangeRatio eqi gt ma = (fromIntegral . countChordChanges $ gt)
-                           / (fromIntegral . countChordChanges $ ma) where
-
-  countChordChanges :: [Timed ChordLabel] -> Int
-  countChordChanges cs = execState (foldrM step [] $ dropTimed cs) 0 
-
-  step :: ChordLabel -> [ChordLabel] -> State Int [ChordLabel]
-  step c []      = do modify succ
-                      return [c]
-  step a ( b : cs ) 
-    | equal (a `eqi` b)  =    return (a : b : cs)
-    | otherwise          = do modify succ
-                              return (a : b : cs)
-
--- | The 'chordChangeRatio' is optimal if it is one, but it can be larger or 
--- smaller than 1. Therefore, calculating the average blurs the actual result.
--- 'avgDistToOne' takes the absolute difference to 1.0 and averages these for a
--- list of Doubles.
-avgDistToOne :: [Double] -> Double
-avgDistToOne ds = (sum . map absDistToOne $ ds) / genericLength ds where
-
-  absDistToOne :: Double -> Double
-  absDistToOne a = abs (1.0 - a)
 
 --------------------------------------------------------------------------------
 -- Displaying evaluations (all in IO)
@@ -181,16 +148,10 @@ avgDistToOne ds = (sum . map absDistToOne $ ds) / genericLength ds where
 -- | Takes an 'EqIgnore' equality and a String and returns the same equality
 -- function but wrapped in IO. At every evaluation the evaluation is printed
 -- to the user. The String is prefixed to this output.
-printEqStr :: (RefLab -> ChordLabel -> EqIgnore) 
-           -> String -> RefLab -> ChordLabel -> IO (EqIgnore)
+printEqStr :: Show a => (RefLab -> ChordLabel -> a) 
+           -> String -> RefLab -> ChordLabel -> IO (a)
 printEqStr eqf str gt test = 
   do let eqi = gt `eqf` test
-     putStrLn . (str ++) . intercalate " " $ [show gt, showEqi eqi, show test]
+     putStrLn . (str ++) . intercalate " " $ [show gt, show eqi, show test]
      return eqi
-
-showEqi :: EqIgnore -> String
-showEqi Equal  = "==*"
-showEqi NotEq  = "/=*"
-showEqi Ignore = "***"
-
  

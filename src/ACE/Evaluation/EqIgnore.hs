@@ -34,8 +34,13 @@ module ACE.Evaluation.EqIgnore (
 data EqIgnore = Equal   -- ^ Equal
               | NotEq   -- ^ Not equal
               | Ignore  -- ^ Ignored
-                deriving (Eq, Show)
+                deriving (Eq)
                 
+instance Show EqIgnore where
+  show Equal  = "==*"
+  show NotEq  = "/=*"
+  show Ignore = "***"
+
 -- | Behaves like 'Eq' but returns an 'EqIgnore' ('Equal' or 'NotEq').
 (==*) :: Eq a => a -> a -> EqIgnore
 a ==* b = compEqIgnore (==) a b
