@@ -20,6 +20,7 @@ module ACE.Evaluation.ChordEq (
     , majMinEq
     , triadEq
     , mirex2010
+    , chordClassEq
     -- * Ground-truth wrapping
     , RefLab 
     , refLab

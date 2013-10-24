@@ -27,9 +27,9 @@ import Control.Concurrent.ParallelIO.Global ( parallel )
 -- MIREX data IO
 --------------------------------------------------------------------------------
 
-evaluateMChords :: ([Timed RefLab] -> [Timed ChordLabel] -> a)
+evaluateMChords :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> a)
                    -- ^ a function that evaluates a song 
-                -> (a -> Double)
+                -> (a -> b)
                    -- ^ a function post-processes a evaluation result
                 -> FilePath -> IO ()
 evaluateMChords ef pp fp = 
@@ -50,22 +50,22 @@ evaluateMChordsVerb ef fp =
 -- | Given an evaluation metric, a 
 -- MIREX results base directory, a year, and a collection, we evaluate all
 -- chord recognition results from that particular year and collection
-evaluateMirex :: ([Timed RefLab] -> [Timed ChordLabel] -> a) 
+evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a) 
                  -- ^ a function that evaluates a song 
-              -> ([a] -> IO Double)
+              -> ([a] -> IO b)
                  -- ^ a function that aggregates the results of multiple songs
-              -> Maybe (a -> Double)
+              -> Maybe (a -> c)
                  -- ^ a function post-processes an individual evaluation result
                  -- that will be printed to the user
               -> Maybe Team 
                  -- ^ evaluates a specific team only
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> Year -> Collection -> IO [Double]
+              -> FilePath -> Year -> Collection -> IO [b]
 evaluateMirex ef af mpp mteam dir y c =
    do let baseDir = dir </> show y </> show c
 
           -- | Evaluates the submission of a single team
-          doTeam :: Team -> IO Double
+          -- doTeam :: Show c => Team -> IO c
           doTeam tm = 
             do putStrLn $ "Team " ++ tm
                getTeamFiles tm >>= parallel . map evaluateMChord >>= af

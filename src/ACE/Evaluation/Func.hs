@@ -20,6 +20,7 @@ module ACE.Evaluation.Func (
     , overlapRatioCol
     , weightOverlapRatio
     , reportAvgWOR
+    , reportMIREX13
     
     , printOverlapEval
     ) where

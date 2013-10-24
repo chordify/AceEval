@@ -14,10 +14,7 @@ import Data.IntSet (IntSet)
 data MajMin = MajClass | MinClass | NoMajMin deriving (Eq, Show)
 data Inv    = FstInv | SecInv | NoInv deriving (Eq, Show)
 newtype RootPC = RootPC Int deriving (Eq, Show)
-data ChordClass = ChordClass RootPC MajMin Sevth Inv
-                | NoChordClass
-                | IgnoreClass 
-                  deriving (Eq, Show)
+data ChordClass = ChordClass RootPC MajMin Sevth Inv  deriving (Eq, Show)
 
 data CCEval a = CCEval a  -- root
                        a  -- majmin
@@ -43,8 +40,8 @@ unzipCCEval = foldr step (CCEval [] [] [] [] []) where
     = CCEval (r:rs) (m:ms) (s:ss) (im:ims) (is:iss)
                 
 toChordClass :: ChordLabel -> ChordClass
-toChordClass UndefChord = IgnoreClass
-toChordClass NoChord    = NoChordClass
+toChordClass UndefChord = error "cannot create ChordClass for UndefChord"
+toChordClass NoChord    = error "cannot create ChordClass for NoChord"
 toChordClass c = let s = toIntSet c
                      m = toMajMin s
                  in ChordClass (toRootPC c) 
