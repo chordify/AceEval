@@ -89,18 +89,22 @@ reportAvgWOR es =
         putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
         return wcsr
         
-type TimedCCEval = ( [[Timed EqIgnore]] -- root
-                   , [[Timed EqIgnore]] -- majmin
-                   , [[Timed EqIgnore]] -- seventh
-                   , [[Timed EqIgnore]] -- majmin inv
-                   , [[Timed EqIgnore]] ) -- seventh inv
-        
-unzipCCEval :: [[Timed CCEval]] -> TimedCCEval
-unzipCCEval = unzip5 . map (unzip5 . map unzipTimed)
+-- unzipCCEval :: [Timed (CCEval EqIgnore)] -> CCEval (Timed [EqIgnore]) 
+-- unzipCCEval = unzipTimed . map unzipTimed
+-- unzipCCEval = unzip5 . map (unzip5 . map unzipTimed)
 
-unzipTimed :: Timed CCEval -> (Timed EqIgnore, Timed EqIgnore, Timed EqIgnore, Timed EqIgnore, Timed EqIgnore)
-unzipTimed td = let (r, m, s, mi, si) = getData td
-                in (setData td r, setData td m, setData td s, setData td mi, setData td si)
+-- TODO perhaps nicer solved by implementing Traversable, and use sequenceA)
+unzipTimed :: Functor f => Timed (f a) -> f (Timed a)
+unzipTimed td = fmap (setData td) . getData $ td 
+
+reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO (CCEval Double)
+reportMIREX13 ce = 
+  do let r = fmap weightOverlapRatio . unzipCCEval 
+            . map (unzipCCEval . map unzipTimed) $ ce
+     print r >> return r
+      
+
+
 --------------------------------------------------------------------------------
 -- Evaluation functions
 --------------------------------------------------------------------------------  

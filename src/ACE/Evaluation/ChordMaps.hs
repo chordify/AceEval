@@ -1,9 +1,10 @@
+{-# LANGUAGE DeriveFunctor        #-}
 module ACE.Evaluation.ChordMaps ( ChordClass
                                 , toChordClass
                                 , compareCC
                                 , CCEval
                                 , toCCEval
-                                , toCCEval
+                                , unzipCCEval
                                 )where
 
 import ACE.Evaluation.EqIgnore
@@ -18,10 +19,28 @@ data ChordClass = ChordClass RootPC MajMin Sevth Inv
                 | IgnoreClass 
                   deriving (Eq, Show)
 
-type CCEval = (EqIgnore, EqIgnore, EqIgnore, EqIgnore, EqIgnore)
+data CCEval a = CCEval a  -- root
+                       a  -- majmin
+                       a  -- seventh
+                       a  -- majmin inv
+                       a  -- seventh inv
+                       deriving (Eq, Functor)
+                       
+instance Show a => Show (CCEval a) where
+  show (CCEval r m s im is) =   "root                        : " ++ show r  ++ 
+                              "\nmajor / minor               : " ++ show m  ++ 
+                              "\nsevenths                    : " ++ show s  ++ 
+                              "\nmajor / minor w. inversions : " ++ show im ++ 
+                              "\nsevenths w. inversions      : " ++ show is 
 
-toCCEval :: EqIgnore -> CCEval
-toCCEval e = (e,e,e,e,e)
+toCCEval :: a -> CCEval a
+toCCEval e = CCEval e e e e e
+                
+unzipCCEval :: [CCEval a] -> CCEval [a]
+unzipCCEval = foldr step (CCEval [] [] [] [] []) where
+  step :: CCEval b -> CCEval [b] -> CCEval [b] 
+  step (CCEval r m s im is) (CCEval rs ms ss ims iss) 
+    = CCEval (r:rs) (m:ms) (s:ss) (im:ims) (is:iss)
                 
 toChordClass :: ChordLabel -> ChordClass
 toChordClass UndefChord = IgnoreClass
@@ -56,21 +75,20 @@ toInv MajClass (Note Nat I3) = FstInv
 toInv MinClass (Note Fl  I3) = FstInv
 toInv _        _             = NoInv  -- other inversions are unsupported
   
-  
-compareCC :: ChordClass -> ChordClass -> CCEval
-compareCC (ChordClass _ NoMajMin _ _) (ChordClass _ _ _ _) 
-              = (Ignore, Ignore, Ignore, Ignore, Ignore)
+
+compareCC :: ChordClass -> ChordClass -> CCEval EqIgnore
+compareCC (ChordClass _ NoMajMin _ _) (ChordClass _ _ _ _)  = toCCEval Ignore
 compareCC (ChordClass ra ma sa ia) (ChordClass rb mb sb ib) 
-  | ra /= rb  = (NotEq , NotEq , NotEq , NotEq , NotEq)
+  | ra /= rb  = toCCEval NotEq
   | otherwise = let mm = ma ==* mb
                     sm = sa ==* sb
                     im = ia ==* ib
-                in ( Equal
-                   , mm                -- only major an minor 
-                   , mm &&* sm         -- major minor and 
-                   , mm &&* im
-                   , mm &&* (sm &&* im)
-                   )
+                in CCEval Equal
+                   ( mm                 ) -- only major an minor 
+                   ( mm &&*  sm         ) -- major minor and 
+                   ( mm &&*  im         ) 
+                   ( mm &&* (sm &&* im) ) 
+                   
 
                    
                    

@@ -119,7 +119,7 @@ triadEq gt test = chordCompare rootEq triadEqI gt test where
             | otherwise    = NotEq
             
   
-chordClassEq :: RefLab -> ChordLabel -> CCEval
+chordClassEq :: RefLab -> ChordLabel -> CCEval EqIgnore
 chordClassEq gt test = case (refLab gt, test) of
    (NoChord,    NoChord   ) -> toCCEval Equal
    (UndefChord, _         ) -> toCCEval Ignore
