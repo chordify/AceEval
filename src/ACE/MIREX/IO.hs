@@ -60,7 +60,7 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> Maybe Team 
                  -- ^ evaluates a specific team only
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> Year -> Collection -> IO [b]
+              -> FilePath -> Year -> Collection -> IO ()
 evaluateMirex ef af mpp mteam dir y c =
    do let baseDir = dir </> show y </> show c
 
@@ -92,7 +92,7 @@ evaluateMirex ef af mpp mteam dir y c =
       let tms' = case mteam of
                    Just t  -> filter (t ==) tms
                    Nothing -> tms
-      mapM doTeam tms'
+      mapM_ doTeam tms'
 
 -- | Reads a MIREX file and returns an 'MChords'
 readMChords :: FilePath -> IO MChords

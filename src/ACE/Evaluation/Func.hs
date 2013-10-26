@@ -76,7 +76,7 @@ weightOverlapRatio :: [[Timed EqIgnore]] -> Double
 weightOverlapRatio es = let dur = sumDur . map durations $ es
                         in equals dur / noIgnoreDur dur
       
-reportAvgWOR :: [[Timed EqIgnore]] -> IO (Double)
+reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
 reportAvgWOR es = 
   let (EqIDur e n i) = sumDur . map durations $ es
   in do putStrLn "==============================================="
@@ -88,7 +88,7 @@ reportAvgWOR es =
         let wcsr = weightOverlapRatio es
         putStrLn $ printf "Chord sequence recall:         \t%.6f" (overlapRatioCol es)
         putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
-        return wcsr
+        -- return wcsr
         
 
         
@@ -96,12 +96,12 @@ reportAvgWOR es =
 unzipTimed :: Functor f => Timed (f a) -> f (Timed a)
 unzipTimed td = fmap (setData td) . getData $ td 
 
-reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO (CCEval Double)
+reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
 reportMIREX13 ce = 
   do let r = fmap weightOverlapRatio . unzipCCEval 
             . map (unzipCCEval . map unzipTimed) $ ce
      putStrLn "==============================================="
-     print r >> putStrLn "" >> return r
+     print r >> putStrLn "" -- >> return r
       
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
 overlapRatioCCEval = fmap overlapRatio . unzipCCEval . map unzipTimed
