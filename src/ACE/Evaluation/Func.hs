@@ -79,7 +79,7 @@ weightOverlapRatio es = let dur = sumDur . map durations $ es
 reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
 reportAvgWOR es = 
   let (EqIDur e n i) = sumDur . map durations $ es
-  in do putStrLn "==============================================="
+  in do putStrLn "================================================"
         putStrLn $ printf "Total duration equal:          \t%5.2f" e
         putStrLn $ printf "Total duration not equal:      \t%5.2f" n
         putStrLn $ printf "Total duration ignored:        \t%5.2f" i
@@ -100,7 +100,7 @@ reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
 reportMIREX13 ce = 
   do let r = fmap weightOverlapRatio . unzipCCEval 
             . map (unzipCCEval . map unzipTimed) $ ce
-     putStrLn "==============================================="
+     putStrLn "================================================"
      print r >> putStrLn "" -- >> return r
       
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double

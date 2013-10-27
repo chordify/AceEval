@@ -20,7 +20,7 @@ import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
 import System.Directory      ( getDirectoryContents )
 import System.FilePath       ( (</>) )
-import System.IO             ( hPutStrLn, stderr )
+import System.IO             ( hPutStrLn, stderr, Handle )
 import Control.Concurrent.ParallelIO.Global ( parallel )
 
 --------------------------------------------------------------------------------
@@ -30,24 +30,28 @@ import Control.Concurrent.ParallelIO.Global ( parallel )
 evaluateMChords :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> a)
                    -- ^ a function that evaluates a song 
                 -> (a -> b)
+                   -- ^ a possible Handle for routing the error messages
+                -> Maybe Handle
                    -- ^ a function post-processes a evaluation result
                 -> FilePath
                    -- ^ the input file
                 -> IO ()
-evaluateMChords ef pp fp = 
-  do mc <- readMChords fp
+evaluateMChords ef pp mh fp = 
+  do mc <- readMChords mh fp
      putStr (show mc ++ ": ") 
      print . evaluate (\a b -> pp $ ef a b) $ mc
 
 evaluateMChordsVerb :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> IO a)
                    -- ^ a function that evaluates a song 
                 -> (a -> b)
+                   -- ^ a possible Handle for routing the error messages
+                -> Maybe Handle
                    -- ^ a function post-processes a evaluation result
                 -> FilePath
                    -- ^ the input file
                 -> IO ()
-evaluateMChordsVerb ef pp fp = 
-  do mc <- readMChords fp
+evaluateMChordsVerb ef pp mh fp = 
+  do mc <- readMChords mh fp
      putStrLn (show mc ++ ": ") 
      evaluate (\a b -> ef a b >>= return . pp) mc >>= print
      
@@ -60,13 +64,15 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> ([a] -> IO b)
                  -- ^ a function that aggregates the results of multiple songs
               -> Maybe (a -> c)
+                 -- ^ a possible Handle for routing the error messages
+              -> Maybe Handle
                  -- ^ a function post-processes an individual evaluation result
                  -- that will be printed to the user
               -> Maybe Team 
                  -- ^ evaluates a specific team only
                  --TODO probably we don't need Year and Collection here
               -> FilePath -> Year -> Collection -> IO ()
-evaluateMirex ef af mpp mteam dir y c =
+evaluateMirex ef af mpp mh mteam dir y c =
    do let baseDir = dir </> show y </> show c
 
           -- | Evaluates the submission of a single team
@@ -83,7 +89,7 @@ evaluateMirex ef af mpp mteam dir y c =
           -- Evaluates a single file
           -- evaluateMChord :: (Team, FilePath) -> IO a
           evaluateMChord (tm, fp) = 
-            do mc <- readMChords fp 
+            do mc <- readMChords mh fp 
                if tm == team mc
                   then do let r = evaluate ef mc
                           when (isJust mpp) . putStrLn 
@@ -100,22 +106,18 @@ evaluateMirex ef af mpp mteam dir y c =
       mapM_ doTeam tms'
 
 -- | Reads a MIREX file and returns an 'MChords'
-readMChords :: FilePath -> IO MChords
-readMChords fp = 
+readMChords :: Maybe Handle -> FilePath -> IO MChords
+readMChords mh fp = 
   do let (b,y,c,tm,i,f) = fromFileName fp 
-     txt <- readFile fp 
+     t <- readFile fp 
      
      case f of 
-       JS  ->    printPPLog show (preProcess . parseChords (pChordJSON y c)) txt
+       JS  ->    printPPLog mh show (preProcess . parseChords (pChordJSON y c)) t
        LAB -> do let pGT :: Parser MChords
-                     pGT = pGroundTruth (parseChords (pLabMChords tm i y c) txt)
+                     pGT = pGroundTruth (parseChords (pLabMChords tm i y c) t)
                  gt  <- readFile (toFileName b y c "Ground-truth" i f)
-                 printPPLog show (preProcess . parseChords pGT) gt 
-                        
-printPPLog :: ([PPLog] -> String) -> (a -> (b, [PPLog])) -> a -> IO b
-printPPLog pp f a = let (r, logs) = f a in do putErrStrLn (pp logs)
-                                              return r
-                        
+                 printPPLog mh show (preProcess . parseChords pGT) gt 
+
 parseChords :: Parser MChords -> String -> MChords
 parseChords pf txt = case parseDataWithErrors pf txt of
        (mc, []) -> mc
@@ -133,11 +135,17 @@ evaluate ef mc = case groundTruth mc of
 -- Unexported IO utils
 --------------------------------------------------------------------------------
 
+                        
+printPPLog :: Maybe Handle -> ([PPLog] -> String) -> (a -> (b, [PPLog])) -> a -> IO b
+printPPLog mh pp f a = do  let (r, logs) = f a
+                           case mh of
+                             Just h  -> hPutStrLn h (pp logs)
+                             Nothing -> return ()
+                           return r
+                        
+
 -- | Like 'getCurDirectoryContents', but filters the results for "." and ".."
 getCurDirectoryContents :: FilePath -> IO [FilePath]
 getCurDirectoryContents fp = 
   getDirectoryContents fp >>= return . filter (\x -> x /= "." && x /= "..") 
-              
-putErrStrLn :: String -> IO ()
-putErrStrLn s = hPutStrLn stderr s
 

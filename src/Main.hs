@@ -11,10 +11,12 @@ import System.Console.ParseArgs
 import Control.Monad              ( void )
 import System.FilePath            ( (</>) )
 import System.Directory           ( doesDirectoryExist )
+import System.IO                  ( stderr, Handle, openFile )
 import Data.Maybe                 ( isJust )
 
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
                | Collection | GroundTruthDir | VocabularyMapping | FileFormat
+               | ErrorStream
                deriving (Eq, Ord, Show)
 
 myArgs :: [Arg MirexArgs]
@@ -73,28 +75,25 @@ myArgs = [
                  argData  = argDataOptional "format" ArgtypeString,
                  argDesc  = "The kind of input format (json|lab)"
                } 
+         , Arg { argIndex = ErrorStream,
+                 argAbbr  = Just 'e',
+                 argName  = Just "error",
+                 argData  = argDataOptional "format" ArgtypeString,
+                 argDesc  = "prints the error messages to a file or stderr"
+               } 
          ] 
 
 main :: IO ()
 main = do arg <- parseArgsIO ArgsComplete myArgs
           let c  = pCollection arg
               y  = pYear arg
-              -- p  = pVerb arg pp
               
-              -- ef = overlapEval vm 
-              -- pp = const 1
-              -- pp = overlapRatioCCEval
-              
-              -- pEq :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
-              -- pEq a b = printOverlapEval vm a b >>= return . pp
-              
+          mh <- pErrStr arg
+          
           case fileOrDir arg of
-            Left  f -> pEvalFuncFile arg $ f
-
-                {- if isJust p then void $ evaluateMChordsVerb pEq f 
-                                   else evaluateMChords ef pp f -}
+            Left  f ->    (pEvalFuncFile arg) mh f
             Right d -> do t <- pTeam arg d y c
-                          (pEvalFuncDir arg) t d y c
+                          (pEvalFuncDir arg) mh t d y c
 
 printReturn :: Show a => a -> IO (a)
 printReturn a = print a >> return a
@@ -139,7 +138,7 @@ pYear arg = case toYear $ getRequiredArg arg MirexYear of
               (Nothing, e) -> usageError arg e
 
 pEvalFuncFile :: Args MirexArgs 
-             ->  FilePath -> IO ()
+             -> Maybe Handle ->  FilePath -> IO ()
 pEvalFuncFile arg = 
   case (getRequiredArg arg VocabularyMapping, gotArg arg Print) of
     ("mirex2010", True ) -> evaluateMChordsVerb (printOverlapEval mirex2010) overlapRatio
@@ -157,7 +156,8 @@ pEvalFuncFile arg =
 
               
 pEvalFuncDir :: Args MirexArgs 
-             -> Maybe Team -> FilePath -> Year -> Collection -> IO ()
+             -> Maybe Handle -> Maybe Team -> FilePath -> Year -> Collection 
+             -> IO ()
 pEvalFuncDir arg = case getRequiredArg arg VocabularyMapping of
   "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR  (pVerb arg overlapRatio)
   "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR  (pVerb arg overlapRatio)
@@ -172,5 +172,10 @@ pFormat arg = case toFormat $ getRequiredArg arg FileFormat of
                (Just f , _) -> f
                (Nothing, e) -> usageError arg e 
 
-
+pErrStr :: Args MirexArgs -> IO (Maybe Handle)
+pErrStr arg = case getArg arg ErrorStream of
+                Just "stderr" -> return (Just stderr)
+                Just "err"    -> return (Just stderr)
+                Just fp       -> openFile fp WriteMode >>= return . Just
+                Nothing       -> return Nothing
               
