@@ -31,20 +31,25 @@ evaluateMChords :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> a)
                    -- ^ a function that evaluates a song 
                 -> (a -> b)
                    -- ^ a function post-processes a evaluation result
-                -> FilePath -> IO ()
+                -> FilePath
+                   -- ^ the input file
+                -> IO ()
 evaluateMChords ef pp fp = 
   do mc <- readMChords fp
      putStr (show mc ++ ": ") 
-     putStrLn . show . evaluate (\a b -> pp $ ef a b) $ mc
+     print . evaluate (\a b -> pp $ ef a b) $ mc
 
-evaluateMChordsVerb :: Show a => ([Timed RefLab] -> [Timed ChordLabel] -> IO a) 
-                    -> FilePath -> IO a
-evaluateMChordsVerb ef fp = 
+evaluateMChordsVerb :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> IO a)
+                   -- ^ a function that evaluates a song 
+                -> (a -> b)
+                   -- ^ a function post-processes a evaluation result
+                -> FilePath
+                   -- ^ the input file
+                -> IO ()
+evaluateMChordsVerb ef pp fp = 
   do mc <- readMChords fp
-     print mc
-     r <- evaluate ef mc 
-     print r
-     return r
+     putStrLn (show mc ++ ": ") 
+     evaluate (\a b -> ef a b >>= return . pp) mc >>= print
      
   
 -- | Given an evaluation metric, a 

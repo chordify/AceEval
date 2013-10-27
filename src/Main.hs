@@ -80,7 +80,7 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
           let c  = pCollection arg
               y  = pYear arg
               -- p  = pVerb arg pp
-              ef = pEvalFuncDir arg 
+              
               -- ef = overlapEval vm 
               -- pp = const 1
               -- pp = overlapRatioCCEval
@@ -89,10 +89,12 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
               -- pEq a b = printOverlapEval vm a b >>= return . pp
               
           case fileOrDir arg of
-            Left  f -> undefined {- if isJust p then void $ evaluateMChordsVerb pEq f 
+            Left  f -> pEvalFuncFile arg $ f
+
+                {- if isJust p then void $ evaluateMChordsVerb pEq f 
                                    else evaluateMChords ef pp f -}
             Right d -> do t <- pTeam arg d y c
-                          void $ ef t d y c
+                          (pEvalFuncDir arg) t d y c
 
 printReturn :: Show a => a -> IO (a)
 printReturn a = print a >> return a
@@ -136,6 +138,24 @@ pYear arg = case toYear $ getRequiredArg arg MirexYear of
               (Just y , _) -> y
               (Nothing, e) -> usageError arg e
 
+pEvalFuncFile :: Args MirexArgs 
+             ->  FilePath -> IO ()
+pEvalFuncFile arg = 
+  case (getRequiredArg arg VocabularyMapping, gotArg arg Print) of
+    ("mirex2010", True ) -> evaluateMChordsVerb (printOverlapEval mirex2010) overlapRatio
+    ("mirex2010", False) -> evaluateMChords (overlapEval mirex2010) overlapRatio
+    ("majMin"   , True ) -> evaluateMChordsVerb (printOverlapEval majMinEq) overlapRatio
+    ("majMin"   , False) -> evaluateMChords (overlapEval majMinEq) overlapRatio
+    ("root"     , True ) -> evaluateMChordsVerb (printOverlapEval mirex2010) overlapRatio
+    ("root"     , False) -> evaluateMChords (overlapEval mirex2010) overlapRatio
+    ("bass"     , True ) -> evaluateMChordsVerb (printOverlapEval bassOnlyEq) overlapRatio
+    ("bass"     , False) -> evaluateMChords (overlapEval bassOnlyEq) overlapRatio
+    ("triad"    , True ) -> evaluateMChordsVerb (printOverlapEval triadEq) overlapRatio
+    ("triad"    , False) -> evaluateMChords (overlapEval triadEq) overlapRatio
+    ("mirex2013", _    ) -> error "unsupported mode"
+    (m, _) -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
+
+              
 pEvalFuncDir :: Args MirexArgs 
              -> Maybe Team -> FilePath -> Year -> Collection -> IO ()
 pEvalFuncDir arg = case getRequiredArg arg VocabularyMapping of
