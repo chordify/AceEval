@@ -80,7 +80,7 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
           let c  = pCollection arg
               y  = pYear arg
               -- p  = pVerb arg pp
-              ef = pVocMap arg 
+              ef = pEvalFuncDir arg 
               -- ef = overlapEval vm 
               -- pp = const 1
               -- pp = overlapRatioCCEval
@@ -136,18 +136,16 @@ pYear arg = case toYear $ getRequiredArg arg MirexYear of
               (Just y , _) -> y
               (Nothing, e) -> usageError arg e
 
--- pVocMap :: Show c => Args MirexArgs -> Maybe ([Timed (CCEval EqIgnore)] -> c)
-                -- -> Maybe Team -> FilePath -> Year -> Collection
-                -- -> IO [CCEval Double]            
-pVocMap arg = case getRequiredArg arg VocabularyMapping of
-                  -- "mirex2010" -> overlapEval mirex2010
-                  -- "majMin"    -> overlapEval majMinEq
-                  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR  (pVerb arg overlapRatio)
-                  -- "bass"      -> overlapEval bassOnlyEq
-                  -- "triad"     -> overlapEval triadEq
-                  -- "mirex2013" -> overlapEval chordClassEq
-                  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 (pVerb arg overlapRatioCCEval)
-                  m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
+pEvalFuncDir :: Args MirexArgs 
+             -> Maybe Team -> FilePath -> Year -> Collection -> IO ()
+pEvalFuncDir arg = case getRequiredArg arg VocabularyMapping of
+  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR  (pVerb arg overlapRatio)
+  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR  (pVerb arg overlapRatio)
+  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR  (pVerb arg overlapRatio)
+  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR  (pVerb arg overlapRatio)
+  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR  (pVerb arg overlapRatio)
+  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 (pVerb arg overlapRatioCCEval)
+  m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
 pFormat :: Args MirexArgs -> Format
 pFormat arg = case toFormat $ getRequiredArg arg FileFormat of
