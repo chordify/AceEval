@@ -32,8 +32,16 @@ normHamDist :: [Timed a] -> [Double] -> Double
 normHamDist td hd = (sum hd) / (offset . last $ td)
 
 durAllButMaxVerb :: (Show a, Show b ) => Timed a -> [Timed b] -> IO Double
-durAllButMaxVerb gt ts = undefined
-           
+durAllButMaxVerb gt ts = mapM (printDur gt) ts >>= return . sum
+
+  where m = maximum (map duration ts)
+  
+        printDur :: (Show a, Show b) => Timed a -> Timed b -> IO Double
+        printDur a b 
+          | duration b == m = putStrLn (show a ++ " *** " ++ show b) >> return 0
+          | otherwise       = putStrLn (show a ++ " <-> " ++ show b) 
+                            >> return (duration b)
+                        
 durAllButMax :: a -> [Timed b] -> Double
 durAllButMax _ td = let d = map duration td in (sum d) - (maximum d)
   
