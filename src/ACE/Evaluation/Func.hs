@@ -23,6 +23,8 @@ module ACE.Evaluation.Func (
     , reportMIREX13
     , overlapRatioCCEval
     , printOverlapEval
+    -- * Utilities
+    , crossSegment
     ) where
 
 import ACE.Evaluation.EqIgnore
