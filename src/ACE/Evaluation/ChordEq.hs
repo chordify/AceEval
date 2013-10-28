@@ -28,7 +28,7 @@ module ACE.Evaluation.ChordEq (
   ) where
 
 import ACE.Evaluation.EqIgnore
-import ACE.Evaluation.ChordMaps
+import ACE.Evaluation.ChordClass
   
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
@@ -121,7 +121,7 @@ triadEq gt test = chordCompare rootEq triadEqI gt test where
             
   
 chordClassEq :: RefLab -> ChordLabel -> CCEval EqIgnore
-chordClassEq gt test = case (refLab gt, test) of
+chordClassEq rfl test = case (refLab rfl, test) of
    (NoChord,    NoChord   ) -> toCCEval Equal
    (UndefChord, _         ) -> toCCEval Ignore
    (_         , UndefChord) -> toCCEval NotEq

@@ -20,7 +20,7 @@ import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
 import System.Directory      ( getDirectoryContents )
 import System.FilePath       ( (</>) )
-import System.IO             ( hPutStrLn, stderr, Handle )
+import System.IO             ( hPutStrLn, Handle )
 import Control.Concurrent.ParallelIO.Global ( parallel )
 
 --------------------------------------------------------------------------------

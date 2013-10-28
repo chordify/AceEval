@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveFunctor        #-}
-module ACE.Evaluation.ChordMaps ( ChordClass
-                                , toChordClass
-                                , compareCC
-                                , CCEval (..)
-                                , toCCEval
-                                , unzipCCEval
-                                )where
+module ACE.Evaluation.ChordClass ( ChordClass
+                                 , toChordClass
+                                 , compareCC
+                                 , CCEval (..)
+                                 , toCCEval
+                                 , unzipCCEval
+                                 )where
 
 import ACE.Evaluation.EqIgnore
 import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..) )
@@ -50,7 +50,7 @@ toRootPC :: ChordLabel -> RootPC
 toRootPC = RootPC . rootPC
 
 toSevth :: MajMin -> IntSet -> Sevth
-toSevth m s = case (m, analyseSevth s) of
+toSevth m is = case (m, analyseSevth is) of
                 (_       , DimSev) -> NoSev -- :dim     unsupported
                 (MinClass, MajSev) -> NoSev -- :minmaj7 unsupported
                 (_       ,s      ) -> s

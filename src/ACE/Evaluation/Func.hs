@@ -27,7 +27,7 @@ module ACE.Evaluation.Func (
 
 import ACE.Evaluation.EqIgnore
 import ACE.Evaluation.ChordEq
-import ACE.Evaluation.ChordMaps
+import ACE.Evaluation.ChordClass
     
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 

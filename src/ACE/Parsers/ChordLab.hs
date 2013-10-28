@@ -18,8 +18,8 @@ pLabMChords t i y c = (\x -> MChords c y t i x Nothing) <$> pLabData
 
 pGroundTruth :: MChords -> Parser MChords
 pGroundTruth mc = case groundTruth mc of
-                    Just gt -> error "pGroundTruth: this MChord allready has a ground truth"
-                    Nothing -> (\x -> mc {groundTruth = Just x}) <$> pLabData
+  Just _gt -> error "pGroundTruth: this MChord allready has a ground truth"
+  Nothing  -> (\x -> mc {groundTruth = Just x}) <$> pLabData
                     
 -- | Parses a chord annotation.
 pLabData :: Parser [Timed ChordLabel]
