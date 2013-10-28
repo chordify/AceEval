@@ -151,6 +151,7 @@ pEvalFuncFile arg =
     ("triad"    , False) -> evaluateMChords (overlapEval triadEq) overlapRatio
     ("mirex2013", True ) -> evaluateMChordsVerb (printOverlapEval chordClassEq) overlapRatioCCEval
     ("mirex2013", False) -> evaluateMChords (overlapEval chordClassEq) overlapRatioCCEval
+    ("segment"  , True ) -> evaluateMChordsVerb hammingDistVerb sum
     (m, _) -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
               
