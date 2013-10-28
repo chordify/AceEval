@@ -3,16 +3,14 @@ module Main where
 
 import ACE.MIREX
 import ACE.Evaluation
-import HarmTrace.Base.Chord       ( ChordLabel )
-import HarmTrace.Base.Time        ( Timed )
+
 
 -- other libraries
 import System.Console.ParseArgs
-import Control.Monad              ( void )
 import System.FilePath            ( (</>) )
 import System.Directory           ( doesDirectoryExist )
 import System.IO                  ( stderr, Handle, openFile )
-import Data.Maybe                 ( isJust )
+
 
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
                | Collection | GroundTruthDir | VocabularyMapping | FileFormat
@@ -145,13 +143,14 @@ pEvalFuncFile arg =
     ("mirex2010", False) -> evaluateMChords (overlapEval mirex2010) overlapRatio
     ("majMin"   , True ) -> evaluateMChordsVerb (printOverlapEval majMinEq) overlapRatio
     ("majMin"   , False) -> evaluateMChords (overlapEval majMinEq) overlapRatio
-    ("root"     , True ) -> evaluateMChordsVerb (printOverlapEval mirex2010) overlapRatio
-    ("root"     , False) -> evaluateMChords (overlapEval mirex2010) overlapRatio
+    ("root"     , True ) -> evaluateMChordsVerb (printOverlapEval rootOnlyEq) overlapRatio
+    ("root"     , False) -> evaluateMChords (overlapEval rootOnlyEq) overlapRatio
     ("bass"     , True ) -> evaluateMChordsVerb (printOverlapEval bassOnlyEq) overlapRatio
     ("bass"     , False) -> evaluateMChords (overlapEval bassOnlyEq) overlapRatio
     ("triad"    , True ) -> evaluateMChordsVerb (printOverlapEval triadEq) overlapRatio
     ("triad"    , False) -> evaluateMChords (overlapEval triadEq) overlapRatio
-    ("mirex2013", _    ) -> error "unsupported mode"
+    ("mirex2013", True ) -> evaluateMChordsVerb (printOverlapEval chordClassEq) overlapRatioCCEval
+    ("mirex2013", False) -> evaluateMChords (overlapEval chordClassEq) overlapRatioCCEval
     (m, _) -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
               

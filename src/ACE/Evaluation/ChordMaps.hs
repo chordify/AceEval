@@ -2,14 +2,15 @@
 module ACE.Evaluation.ChordMaps ( ChordClass
                                 , toChordClass
                                 , compareCC
-                                , CCEval
+                                , CCEval (..)
                                 , toCCEval
                                 , unzipCCEval
                                 )where
 
 import ACE.Evaluation.EqIgnore
-import HarmTrace.Base.Chord hiding (toMajMin, ClassType (..))
-import Data.IntSet (IntSet)
+import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..) )
+import Data.IntSet                 ( IntSet )
+import Data.List                   ( intercalate )
 
 data MajMin = MajClass | MinClass | NoMajMin deriving (Eq, Show)
 data Inv    = FstInv | SecInv | NoInv deriving (Eq, Show)
@@ -24,11 +25,7 @@ data CCEval a = CCEval a  -- root
                        deriving (Eq, Functor)
                        
 instance Show a => Show (CCEval a) where
-  show (CCEval r m s im is) =   "root                        : " ++ show r  ++ 
-                              "\nmajor / minor               : " ++ show m  ++ 
-                              "\nsevenths                    : " ++ show s  ++ 
-                              "\nmajor / minor w. inversions : " ++ show im ++ 
-                              "\nsevenths w. inversions      : " ++ show is 
+  show (CCEval r m s im is) = intercalate " " . map show $ [r,m,s,im,is] 
 
 toCCEval :: a -> CCEval a
 toCCEval e = CCEval e e e e e
@@ -74,10 +71,13 @@ toInv _        _             = NoInv  -- other inversions are unsupported
   
 
 compareCC :: ChordClass -> ChordClass -> CCEval EqIgnore
-compareCC (ChordClass _ NoMajMin _ _) (ChordClass _ _ _ _)  = toCCEval Ignore
+-- compareCC (ChordClass _ NoMajMin _ _) (ChordClass _ _ _ _)  = toCCEval Ignore
 compareCC (ChordClass ra ma sa ia) (ChordClass rb mb sb ib) 
   | ra /= rb  = toCCEval NotEq
-  | otherwise = let mm = ma ==* mb
+  | otherwise = let mm = case (ma,mb) of 
+                           (NoMajMin, _) -> Ignore
+                           (_, NoMajMin) -> Ignore
+                           _             -> ma ==* mb
                     sm = sa ==* sb
                     im = ia ==* ib
                 in CCEval Equal

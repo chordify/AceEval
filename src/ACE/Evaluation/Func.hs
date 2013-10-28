@@ -32,10 +32,7 @@ import ACE.Evaluation.ChordMaps
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
 
-import Data.List                 ( genericLength, intercalate, unzip5 )
-
-import Data.Foldable             ( foldrM )
-import Control.Monad.State       ( State, execState, modify )
+import Data.List                 ( genericLength, intercalate )
 import Text.Printf               ( printf )
 
 --------------------------------------------------------------------------------
@@ -98,10 +95,14 @@ unzipTimed td = fmap (setData td) . getData $ td
 
 reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
 reportMIREX13 ce = 
-  do let r = fmap weightOverlapRatio . unzipCCEval 
-            . map (unzipCCEval . map unzipTimed) $ ce
-     putStrLn "================================================"
-     print r >> putStrLn "" -- >> return r
+  do let (CCEval r m s im is) = fmap weightOverlapRatio . unzipCCEval 
+                              . map (unzipCCEval . map unzipTimed) $ ce
+     putStrLn  "================================================"
+     putStrLn ("root                        : " ++ show r  ) 
+     putStrLn ("major / minor               : " ++ show m  ) 
+     putStrLn ("sevenths                    : " ++ show s  ) 
+     putStrLn ("major / minor w. inversions : " ++ show im ) 
+     putStrLn ("sevenths w. inversions      : " ++ show is )
       
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
 overlapRatioCCEval = fmap overlapRatio . unzipCCEval . map unzipTimed
