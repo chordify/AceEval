@@ -22,7 +22,7 @@ module ACE.Evaluation.ChordEq (
     , mirex2010
     , chordClassEq
     -- * Ground-truth wrapping
-    , RefLab 
+    , RefLab
     , refLab
     , makeGT
   ) where
@@ -107,17 +107,14 @@ triadEq gt test = chordCompare rootEq triadEqI gt test where
 
   triadEqI :: RefLab -> ChordLabel -> EqIgnore
   triadEqI (RefLab x) y = case (toTriad x, toTriad y) of
-     (NoTriad, NoTriad) -> susEq x y
-     (NoTriad, _      ) -> NotEq
+     (NoTriad, _      ) -> susEq x y
      (_      , NoTriad) -> NotEq
      (tx     , ty     ) -> tx ==* ty 
-                   
                    
   susEq :: ChordLabel -> ChordLabel -> EqIgnore
   susEq a b | isSus2 a     = toEqIgnore (isSus2 b)
             | isSus4 a     = toEqIgnore (isSus4 b)
-            -- | isRootOnly a = toEqIgnore (isRootOnly b)
-            | otherwise    = NotEq
+            | otherwise    = Ignore
             
   
 chordClassEq :: RefLab -> ChordLabel -> CCEval EqIgnore
