@@ -55,6 +55,8 @@ toSevth m is = case (m, analyseSevth is) of
                 (MinClass, MajSev) -> NoSev -- :minmaj7 unsupported
                 (_       ,s      ) -> s
                   
+-- | We require the third and the fifth to be present. Hence, @D:maj(*5)@ will
+-- yield 'NoMajMin'
 toMajMin :: IntSet -> MajMin
 toMajMin s = case analyseTriad s of
                MajTriad -> MajClass
