@@ -18,6 +18,7 @@ import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
 
 import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
+import Data.List             ( intercalate )
 import System.Directory      ( getDirectoryContents )
 import System.FilePath       ( (</>) )
 import System.IO             ( hPutStrLn, Handle )
@@ -121,8 +122,7 @@ readMChords mh fp =
 parseChords :: Parser MChords -> String -> MChords
 parseChords pf txt = case parseDataWithErrors pf txt of
        (mc, []) -> mc
-       (_ , er) -> error (-- "parsing file "  ++ fp ++ " yields the following " ++
-                       "parse errors:\n" ++ concatMap (\e -> show e ++ "\n") er)
+       (_ , e ) -> error ("parse errors:\n" ++(intercalate "\n" . map show $ e))
 
 
 -- | Applies an evaluation function to an 'MChords' 
