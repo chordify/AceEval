@@ -59,7 +59,7 @@ noIgnoreDur :: EqIDur -> Double
 noIgnoreDur (EqIDur e n _i) = e + n
 
 sumDur :: [EqIDur] -> EqIDur
-sumDur = foldr1 step where
+sumDur = foldr step (EqIDur 0 0 0) where
   
   step :: EqIDur -> EqIDur -> EqIDur
   step (EqIDur e n i) (EqIDur e2 n2 i2) = EqIDur (e + e2) (n + n2) (i + i2)
