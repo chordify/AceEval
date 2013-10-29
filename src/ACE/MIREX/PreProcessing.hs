@@ -74,7 +74,7 @@ preProcess' mc = do c  <- process Pred . chords $ mc
   
   -- Performs a series of pre-processing operations
   process :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
-  process s cs = fill s cs >>= filterZeroLen s >>= fixStart s >>= fixEnd s 
+  process s cs = filterZeroLen s cs >>= fill s >>= fixStart s >>= fixEnd s 
   
   -- fill "holes" in a chord sequence
   fill :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
@@ -96,9 +96,9 @@ preProcess' mc = do c  <- process Pred . chords $ mc
                  a'   = timed (getData a) (onset a) on -- reset a's offset 
                  logR = fromMChords Rem s mc (timed (getData a) on (offset a))
                  
-  -- remove chord segments that have a length of 0
+  -- remove chord segments that have a length smaller than 0
   filterZeroLen :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel] 
-  filterZeroLen s td = do let (zero, good) = partition (\x -> duration x == 0) td
+  filterZeroLen s td = do let (zero, good) = partition (\x -> duration x <= 0) td
                           modify ((map (fromMChords Zero s mc) zero) ++)
                           return good 
 
