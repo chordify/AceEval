@@ -136,7 +136,8 @@ preProcess' mc = do c  <- process Pred . chords $ mc
 --------------------------------------------------------------------------------
   
 getEndTime :: [Timed a] -> Double
-getEndTime = offset . last
+getEndTime [] = error "getEndTime: empty list"
+getEndTime l  = offset . last $ l
   
 maybeState :: (a -> State b c) -> Maybe a -> State b (Maybe c)
 maybeState f ma = case ma of Just a  -> f a >>= return . Just
