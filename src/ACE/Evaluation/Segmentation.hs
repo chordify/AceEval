@@ -31,17 +31,18 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
   step :: SegEval b -> SegEval [b] -> SegEval [b] 
   step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
 
-reportSegment :: (Fractional a, Show a) => [SegEval a] -> IO () -- (CCEval Double)
+reportSegment :: [SegEval Double] -> IO () 
 reportSegment se = 
-  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
+  do let (SegEval us os mxs) = fmap average . sequenceSegEval . map normSegEval $ se
+         n                   = genericLength se
+         
+         average [] = error "average: empty list"
+         average l  = sum l / n
+         
      putStrLn  "================================================"
      putStrLn ("under segmentation          : " ++ show us ) 
      putStrLn ("over segmentation           : " ++ show os ) 
-     putStrLn ("average segmentation quality: " ++ show mxs) 
-  
-average :: Fractional a => [a] -> a
-average [] = error "average: empty list"
-average l  = sum l / genericLength l
+     putStrLn ("average segmentation quality: " ++ show mxs ++ "\n")  
   
 segmentEval :: [Timed RefLab] -> [Timed ChordLabel] -> SegEval Double
 segmentEval gt test = 

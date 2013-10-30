@@ -171,6 +171,7 @@ pEvalFuncDir arg = case getRequiredArg arg VocabularyMapping of
   "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR  (pVerb arg overlapRatio)
   "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR  (pVerb arg overlapRatio)
   "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 (pVerb arg overlapRatioCCEval)
+  "segment"   -> evaluateMirex segmentEval reportSegment (pVerb arg normSegEval)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
 pFormat :: Args MirexArgs -> Format

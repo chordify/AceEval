@@ -104,7 +104,7 @@ reportMIREX13 ce =
      putStrLn ("major / minor               : " ++ show m  ) 
      putStrLn ("sevenths                    : " ++ show s  ) 
      putStrLn ("major / minor w. inversions : " ++ show im ) 
-     putStrLn ("sevenths w. inversions      : " ++ show is )
+     putStrLn ("sevenths w. inversions      : " ++ show is ++ "\n" )
       
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
 overlapRatioCCEval = fmap overlapRatio . unzipCCEval . map unzipTimed
