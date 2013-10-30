@@ -11,6 +11,13 @@ import HarmTrace.Base.Time
 import Text.Printf               ( printf )
 import Data.List                 ( intercalate )
 
+-- import Debug.Trace
+
+-- myTrace (a,b) = trace (myShow a ++ myShow b) (a,b)  where
+  
+  -- myShow :: Show a => [a] -> String
+  -- myShow = intercalate "\n" . map show 
+
 data SegEval a = SegEval a -- under segmentation score d(gt,test)
                          a -- over  segmentation score d(test,gt)
                          a -- total duration of the ground truth
@@ -19,14 +26,11 @@ data SegEval a = SegEval a -- under segmentation score d(gt,test)
 instance Show a => Show (SegEval a) where
   show (SegEval u o l) = intercalate " " . map show $ [u,o,l] 
 
--- toCCEval :: a -> CCEval a
--- toCCEval e = CCEval e e e e e
-
 segmentEval :: [Timed RefLab] -> [Timed ChordLabel] -> SegEval Double
 segmentEval gt test = 
   let (csGt, csTst) = unzipTimed $ crossSegment gt test 
   in  SegEval (sum $ hammingDist' durAllButMax gt   csTst)
-              (sum $ hammingDist' durAllButMax csGt test)
+              (sum $ hammingDist' durAllButMax test csGt)
               (getEndTime gt)
   
 hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] 
@@ -53,6 +57,7 @@ hammingDistVerb x y = do let csb = snd . unzipTimed $ crossSegment x y
                          return ( r, getEndTime x ) where
                            
   durAllButMaxVerb :: (Show a, Show b ) => Timed a -> [Timed b] -> IO Double
+  durAllButMaxVerb _ [] = error "durAllButMaxVerb: empty list"
   durAllButMaxVerb gt ts = mapM (printDur gt) ts >>= return . sum where 
 
     m = maximum (map duration ts)
