@@ -5,7 +5,7 @@ module ACE.MIREX.PreProcessing ( Edit
 
 import ACE.MIREX.Data
 
-import HarmTrace.Base.Time   ( Timed (..), splitTimed
+import HarmTrace.Base.Time   ( Timed (..), splitTimed, getEndTime
                              , offset, onset, duration, timed )
 import HarmTrace.Base.Chord  ( ChordLabel, Chord (..) )
 import Control.Monad.State   ( State, modify, runState )
@@ -134,10 +134,6 @@ preProcess' mc = do c  <- process Pred . chords $ mc
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
-  
-getEndTime :: [Timed a] -> Double
-getEndTime [] = error "getEndTime: empty list"
-getEndTime l  = offset . last $ l
   
 maybeState :: (a -> State b c) -> Maybe a -> State b (Maybe c)
 maybeState f ma = case ma of Just a  -> f a >>= return . Just
