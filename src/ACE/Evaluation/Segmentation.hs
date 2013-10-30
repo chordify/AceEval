@@ -9,7 +9,7 @@ import HarmTrace.Base.Chord
 import HarmTrace.Base.Time
 
 import Text.Printf               ( printf )
-import Data.List                 ( intercalate )
+import Data.List                 ( intercalate, genericLength )
 
 -- import Debug.Trace
 
@@ -25,7 +25,24 @@ data SegEval a = SegEval a -- under segmentation score d(gt,test)
                        
 instance Show a => Show (SegEval a) where
   show (SegEval u o l) = intercalate " " . map show $ [u,o,l] 
+  
+sequenceSegEval :: [SegEval a] -> SegEval [a]
+sequenceSegEval = foldr step (SegEval [] [] []) where
+  step :: SegEval b -> SegEval [b] -> SegEval [b] 
+  step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
 
+reportSegment :: (Fractional a, Show a) => [SegEval a] -> IO () -- (CCEval Double)
+reportSegment se = 
+  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
+     putStrLn  "================================================"
+     putStrLn ("under segmentation          : " ++ show us ) 
+     putStrLn ("over segmentation           : " ++ show os ) 
+     putStrLn ("average segmentation quality: " ++ show mxs) 
+  
+average :: Fractional a => [a] -> a
+average [] = error "average: empty list"
+average l  = sum l / genericLength l
+  
 segmentEval :: [Timed RefLab] -> [Timed ChordLabel] -> SegEval Double
 segmentEval gt test = 
   let (csGt, csTst) = unzipTimed $ crossSegment gt test 
