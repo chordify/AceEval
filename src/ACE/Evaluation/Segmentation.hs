@@ -102,15 +102,15 @@ hammingDist' mxf (g:gt) tst = mxf g t : hammingDist' mxf gt ts
 -- | Normalises the results of 'hammingDist' and 'hammingDistVerb' returning
 -- the actual directional Hamming distance
 normHamDist :: ([Double], Double) -> Double
-normHamDist (hd, totLen) = (sum hd) / totLen
+normHamDist (hd, totLen) =  1 - ( (sum hd) / totLen ) 
 
 -- | Normalises the results of 'hammingDist', /d/, when it has been applied
 -- for under segmentation /d(gt,test)/ and over segmentation /d(test,gt)/ 
 -- returning both normalised directional Hamming distance and their maximum
 normSegEval :: SegEval Double -> SegEval Double
-normSegEval (SegEval u o totLen) = let dus = u / totLen
-                                       dos = o / totLen
-                                   in SegEval dus dos (max dus dos)
+normSegEval (SegEval u o totLen) = let dus = 1 - ( u / totLen )
+                                       dos = 1 - ( o / totLen )
+                                   in SegEval dus dos (min dus dos)
 
                       
 unzipTimed :: [Timed (a,b)] -> ([Timed a], [Timed b])  
