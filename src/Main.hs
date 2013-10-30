@@ -152,6 +152,7 @@ pEvalFuncFile arg =
     ("mirex2013", True ) -> evaluateMChordsVerb (printOverlapEval chordClassEq) overlapRatioCCEval
     ("mirex2013", False) -> evaluateMChords (overlapEval chordClassEq) overlapRatioCCEval
     ("segment"  , True ) -> evaluateMChordsVerb hammingDistVerb normHamDist
+    ("segment"  , False) -> evaluateMChords hammingDist normHamDist
     (m, _) -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
               
