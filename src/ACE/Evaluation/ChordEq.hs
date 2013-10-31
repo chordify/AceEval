@@ -121,9 +121,15 @@ chordClassEq :: RefLab -> ChordLabel -> CCEval EqIgnore
 chordClassEq rfl test = case (refLab rfl, test) of
    (NoChord,    NoChord   ) -> toCCEval Equal
    (UndefChord, _         ) -> toCCEval Ignore
-   (_         , UndefChord) -> toCCEval NotEq
-   (_         , NoChord   ) -> toCCEval NotEq
    (NoChord   , _         ) -> toCCEval NotEq
+   -- This is a bit of a hack:
+   -- we determine whether the ground truth chord is in the input domain
+   -- by comparing it to itself. for instance, if a G:dim is not in the input
+   -- domain comparing it to G:dim will yield an Ignore (an not an NotEq)
+   (gt        , UndefChord) -> let cc = toChordClass gt 
+                               in fmap (NotEq &&*) (compareCC cc cc) 
+   (gt        , NoChord   ) -> let cc = toChordClass gt 
+                               in fmap (NotEq &&*) (compareCC cc cc)
    (gt        , _         ) -> compareCC (toChordClass gt) (toChordClass test)
 
   
