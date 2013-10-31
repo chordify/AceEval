@@ -131,7 +131,7 @@ printOverlapEval eq gt test = mapM eval $ crossSegment gt test where
   
   -- eval :: Timed (RefLab, ChordLabel) -> IO (Timed a)
   eval dat = do let (g,t) = getData dat
-                    tstr  = printf "%.3f\t%.3f: " (onset dat) (offset dat)
+                    tstr  = printf "%.3f,%.3f," (onset dat) (offset dat)
                 m <- printEqStr eq tstr g t
                 return . fmap (const m) $ dat
          
@@ -174,6 +174,6 @@ printEqStr :: Show a => (RefLab -> ChordLabel -> a)
            -> String -> RefLab -> ChordLabel -> IO (a)
 printEqStr eqf str gt test = 
   do let eqi = gt `eqf` test
-     putStrLn . (str ++) . intercalate " " $ [show gt, show eqi, show test]
+     putStrLn . (str ++) . intercalate "," $ [show (show gt), show eqi, show (show test)]
      return eqi
  

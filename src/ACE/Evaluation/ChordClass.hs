@@ -25,7 +25,7 @@ data CCEval a = CCEval a  -- root
                        deriving (Eq, Functor)
                        
 instance Show a => Show (CCEval a) where
-  show (CCEval r m s im is) = intercalate " " . map show $ [r,m,s,im,is] 
+  show (CCEval r m s im is) = intercalate "," . map show $ [r,m,s,im,is] 
 
 toCCEval :: a -> CCEval a
 toCCEval e = CCEval e e e e e
