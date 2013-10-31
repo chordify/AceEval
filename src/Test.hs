@@ -20,7 +20,7 @@ testChordSeq :: [ChordLabel]
 testChordSeq = map (parseDataSafe pChord) 
   ["N", "X", "G:maj", "G:(1)", "G:min", "C#:7", "G:maj/b3", "G:maj/5", 
    "G:min7/5", "G:min/b3","G:sus4", "G:min7(11)", "G:dim7", "F##:7(s9)", 
-   "Abb:(1,5)", "G:(1,4,7)" ]
+   "Abb:(1,5)"]
    
 combine :: ([ChordLabel], [ChordLabel])
 combine = unzip $ [(x,y) | x <- testChordSeq, y <- testChordSeq]
