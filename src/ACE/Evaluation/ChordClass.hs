@@ -17,12 +17,12 @@ data Inv    = FstInv | SecInv | NoInv deriving (Eq, Show)
 newtype RootPC = RootPC Int deriving (Eq, Show)
 data ChordClass = ChordClass RootPC MajMin Sevth Inv  deriving (Eq, Show)
 
-data CCEval a = CCEval a  -- root
-                       a  -- majmin
-                       a  -- seventh
-                       a  -- majmin inv
-                       a  -- seventh inv
-                       deriving (Eq, Functor)
+data CCEval a = CCEval { eRoot      :: a  -- root
+                       , eMajMin    :: a  -- majmin
+                       , eSevth     :: a  -- seventh
+                       , eMajMinInv :: a  -- majmin inv
+                       , eSevthInv  :: a  -- seventh inv
+                       } deriving (Eq, Functor)
                        
 instance Show a => Show (CCEval a) where
   show (CCEval r m s im is) = intercalate " " . map show $ [r,m,s,im,is] 

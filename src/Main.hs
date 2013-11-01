@@ -172,6 +172,7 @@ pEvalFuncDir arg = let r  = const . return $ ()
   "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (pVerb arg overlapRatio)
   "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (pVerb arg overlapRatio)
   "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (pVerb arg overlapRatioCCEval)
+  "mx13csv"   -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) csvPerSongForAllTeams (pVerb arg overlapRatioCCEval)
   "segment"   -> evaluateMirex segmentEval reportSegment r (pVerb arg normSegEval)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 

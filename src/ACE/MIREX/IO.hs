@@ -60,13 +60,13 @@ evaluateMChordsVerb ef pp mh fp =
 -- | Given an evaluation metric, a 
 -- MIREX results base directory, a year, and a collection, we evaluate all
 -- chord recognition results from that particular year and collection
-evaluateMirex :: (Show c, Show d) => ([Timed RefLab] -> [Timed ChordLabel] -> a) 
+evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a) 
                  -- ^ a function that evaluates a song 
               -> ([a] -> IO b)
                  -- ^ a function that aggregates the results of multiple songs
-              -> ([b] -> IO c)   
+              -> ([b] -> IO ())   
                  -- ^ a function that aggregates the results of multiple teams
-              -> Maybe (a -> d)
+              -> Maybe (a -> c)
                  -- ^ a function post-processes an individual evaluation result
                  -- that will be printed to the user providing verbose feedback             
               -> Maybe Handle
@@ -74,7 +74,7 @@ evaluateMirex :: (Show c, Show d) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> Maybe Team 
                  -- ^ evaluates a specific team only, if set
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> Year -> Collection -> IO c
+              -> FilePath -> Year -> Collection -> IO ()
 evaluateMirex ef af atf mpp mh mteam dir y c =
    do let baseDir = dir </> show y </> show c
 

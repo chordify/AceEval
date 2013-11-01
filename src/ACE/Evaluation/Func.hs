@@ -18,9 +18,11 @@ module ACE.Evaluation.Func (
       overlapEval
     , overlapRatio
     , overlapRatioCol
+    , teamOverlapRatios
     , weightOverlapRatio
     , reportAvgWOR
     , reportMIREX13
+    , csvPerSongForAllTeams
     , overlapRatioCCEval
     , printOverlapEval
     -- * Utilities
@@ -34,7 +36,7 @@ import ACE.Evaluation.ChordClass
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
 
-import Data.List                 ( genericLength, intercalate )
+import Data.List                 ( genericLength, intercalate, transpose )
 import Text.Printf               ( printf )
 
 --------------------------------------------------------------------------------
@@ -80,10 +82,12 @@ weightOverlapRatio :: [[Timed EqIgnore]] -> Double
 weightOverlapRatio es = let dur = sumDur . map durations $ es
                         in equals dur / noIgnoreDur dur
      
-teamOverlapRatios :: [[Timed EqIgnore]] -> [Double]
-teamOverlapRatios = map overlapRatio
+teamOverlapRatios :: (CCEval (Timed EqIgnore) -> (Timed EqIgnore) ) 
+                  -> [[Timed (CCEval EqIgnore)]] -> [Double]
+teamOverlapRatios f = map (overlapRatio . map (f . unzipTimed) )
 
-
+csvPerSongForAllTeams :: [[Double]] -> IO ()
+csvPerSongForAllTeams = mapM_ (putStrLn . intercalate "," . map show) . transpose 
      
 reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
 reportAvgWOR es = 
