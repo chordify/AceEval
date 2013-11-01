@@ -3,10 +3,10 @@
 module ACE.Evaluation.Segmentation ( SegEval (..)
                                    , reportSegment
                                    , segmentEval
-                                   , hamDistOverSeg
-                                   , hamDistOverSegVerb
+                                   -- , hamDistOverSeg
+                                   -- , hamDistOverSegVerb
                                    , hamDistUnderSeg
-                                   , hamDistUnderSegVerb
+                                   -- , hamDistUnderSegVerb
                                    , normHamDist
                                    , normSegEval
                                    ) where
@@ -49,23 +49,23 @@ reportSegment se =
 segmentEval :: [Timed RefLab] -> [Timed ChordLabel] -> SegEval Double
 segmentEval gt test = 
   let (csGt, csTst) = unzipTimed $ crossSegment gt test 
-  in  SegEval (sum $ hammingDist' durAllButMax gt   csTst)
-              (sum $ hammingDist' durAllButMax test csGt)
-              (getEndTime gt)
-  
-hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] 
-                -> IO ([Double], Double)   
-hamDistUnderSegVerb gt test = hammingDistVerb gt test
+      under = 1 - (sum (hammingDist' durAllButMax gt   csTst) / getEndTime gt  )
+      over  = 1 - (sum (hammingDist' durAllButMax test csGt ) / getEndTime test)
+  in SegEval under over (min under over)
+      
+-- hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> Double
+                -- -> IO ([Double], Double)   
+-- hamDistUnderSegVerb gt test = hammingDistVerb gt test
 
-hamDistOverSegVerb :: [Timed RefLab] -> [Timed ChordLabel]
-                   -> IO ([Double], Double)   
-hamDistOverSegVerb gt test = hammingDistVerb test gt
+-- hamDistOverSegVerb :: [Timed RefLab] -> [Timed ChordLabel]
+                   -- -> IO ([Double], Double)   
+-- hamDistOverSegVerb gt test = hammingDistVerb test gt
 
-hamDistUnderSeg :: [Timed RefLab] -> [Timed ChordLabel] -> ([Double], Double)   
+hamDistUnderSeg :: [Timed RefLab] -> [Timed ChordLabel] -> Double
 hamDistUnderSeg gt test = hammingDist gt test
 
-hamDistOverSeg :: [Timed RefLab] -> [Timed ChordLabel] -> ([Double], Double)   
-hamDistOverSeg gt test = hammingDist test gt
+-- hamDistOverSeg :: [Timed RefLab] -> [Timed ChordLabel] -> ([Double], Double)   
+-- hamDistOverSeg gt test = hammingDist test gt
 
 -- | Calculates the directional hamming distance for two sequences, like
 -- 'hammingDist', but verbosely prints the result of the segmentation 
@@ -95,15 +95,14 @@ hammingDistVerb x y = do let csb = snd . unzipTimed $ crossSegment x y
                              return d
  
   showSeg :: Timed b -> String
-  showSeg b = printf "%3.3f\t%3.3f: " (onset b) (offset b)
+  showSeg b = printf "%3.3f,%3.3f," (onset b) (offset b)
                          
 -- | Calculates the directional hamming distance for two sequences per segment
 -- the right part of the tuple is the final length of the sequence for 
 -- normalisation
-hammingDist :: (Show a, Show b ) => [Timed a] -> [Timed b] -> ([Double], Double)
-hammingDist a b = 
-  ( hammingDist' durAllButMax a (snd . unzipTimed $ crossSegment a b)
-  , getEndTime a )
+hammingDist :: (Show a, Show b ) => [Timed a] -> [Timed b] -> Double
+hammingDist a b = let csB = snd . unzipTimed $ crossSegment a b
+                  in 1 - ( sum (hammingDist' durAllButMax a csB) / getEndTime a)
                     
 -- N.B the first argument is not used here, but it is used in the verbose 
 -- version. Hence, to be able to use hammingDist' we put it here as well

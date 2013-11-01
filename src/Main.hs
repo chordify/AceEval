@@ -152,10 +152,10 @@ pEvalFuncFile arg =
     ("mirex2013", True ) -> evaluateMChordsVerb (printOverlapEval chordClassEq) overlapRatioCCEval
     ("mirex2013", False) -> evaluateMChords (overlapEval chordClassEq) overlapRatioCCEval
     -- probably it's better to create another mode
-    ("underSeg" , True ) -> evaluateMChordsVerb hamDistUnderSegVerb normHamDist
-    ("underSeg" , False) -> evaluateMChords hamDistUnderSeg normHamDist
-    ("overSeg"  , True ) -> evaluateMChordsVerb hamDistOverSegVerb normHamDist
-    ("overSeg"  , False) -> evaluateMChords hamDistOverSeg normHamDist
+    -- ("underSeg" , True ) -> evaluateMChordsVerb hamDistUnderSegVerb normHamDist
+    ("underSeg" , False) -> evaluateMChords hamDistUnderSeg id
+    -- ("overSeg"  , True ) -> evaluateMChordsVerb hamDistOverSegVerb normHamDist
+    -- ("overSeg"  , False) -> evaluateMChords hamDistOverSeg normHamDist
     ("segment"  , True ) -> usageError arg "please use overSeg and underSeg"
     ("segment"  , False) -> evaluateMChords segmentEval normSegEval
     (m, _) -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
