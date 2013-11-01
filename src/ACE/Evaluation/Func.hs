@@ -82,8 +82,8 @@ weightOverlapRatio :: [[Timed EqIgnore]] -> Double
 weightOverlapRatio es = let dur = sumDur . map durations $ es
                         in equals dur / noIgnoreDur dur
      
-teamOverlapRatios :: (CCEval (Timed EqIgnore) -> (Timed EqIgnore) ) 
-                  -> [[Timed (CCEval EqIgnore)]] -> [Double]
+teamOverlapRatios :: Functor f => (f (Timed EqIgnore) -> (Timed EqIgnore) ) 
+                  -> [[Timed (f EqIgnore)]] -> [Double]
 teamOverlapRatios f = map (overlapRatio . map (f . unzipTimed) )
 
 csvPerSongForAllTeams :: [[Double]] -> IO ()

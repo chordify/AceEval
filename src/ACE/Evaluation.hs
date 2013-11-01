@@ -17,12 +17,12 @@ module ACE.Evaluation (
     module ACE.Evaluation.EqIgnore
   , module ACE.Evaluation.ChordEq
   , module ACE.Evaluation.Func
-  , module ACE.Evaluation.Segmentation
-  , module ACE.Evaluation.ChordClass
+  , module ACE.Evaluation.Segmentation 
+  , module ACE.Evaluation.ChordClass 
   ) where
 
 import ACE.Evaluation.EqIgnore
 import ACE.Evaluation.ChordEq
 import ACE.Evaluation.Func
 import ACE.Evaluation.Segmentation
-import ACE.Evaluation.ChordClass
+import ACE.Evaluation.ChordClass    ( CCEval (..) ) 

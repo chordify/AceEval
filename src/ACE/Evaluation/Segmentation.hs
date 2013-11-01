@@ -11,13 +11,6 @@ import HarmTrace.Base.Time
 import Text.Printf               ( printf )
 import Data.List                 ( intercalate, genericLength )
 
--- import Debug.Trace
-
--- myTrace (a,b) = trace (myShow a ++ myShow b) (a,b)  where
-  
-  -- myShow :: Show a => [a] -> String
-  -- myShow = intercalate "\n" . map show 
-
 data SegEval a = SegEval a -- under segmentation score d(gt,test)
                          a -- over  segmentation score d(test,gt)
                          a -- total duration of the ground truth
