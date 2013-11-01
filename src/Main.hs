@@ -163,8 +163,9 @@ pEvalFuncFile arg =
               
 pEvalFuncDir :: Args MirexArgs 
              -> Maybe Handle -> Maybe Team -> FilePath -> IO ()
-pEvalFuncDir arg = let r     = const . return $ () 
-                       tpf t = "Team: " ++ show t ++ "\n"
+pEvalFuncDir arg = let r      = const . return $ () 
+                       tpf t  = "Team: " ++ show t ++ "\n"
+                       tcsv t = show t ++ ","
                    in case getRequiredArg arg VocabularyMapping of
   "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
@@ -172,8 +173,8 @@ pEvalFuncDir arg = let r     = const . return $ ()
   "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (Just tpf) (pVerb arg overlapRatioCCEval)
-  "mx13csv"   -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
-                   csvPerSongForAllTeams (Just (\x -> show x ++ ",")) (pVerb arg overlapRatioCCEval)
+  "mx13root"  -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
+                   csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg normSegEval)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
