@@ -64,17 +64,27 @@ sumDur = foldr step (EqIDur 0 0 0) where
   step :: EqIDur -> EqIDur -> EqIDur
   step (EqIDur e n i) (EqIDur e2 n2 i2) = EqIDur (e + e2) (n + n2) (i + i2)
 
+-- | Calculates the Chord Sequence Recall: the correct overlap between
+-- the groundtruth chord annotation and the predicted annotation
 overlapRatio :: [Timed EqIgnore] -> Double
 overlapRatio es = let dur = durations es
                   in equals dur / noIgnoreDur dur
 
+-- | Calculates and averages the Chord Sequence Recall for a list of evaluation
+-- results 
 overlapRatioCol :: [[Timed EqIgnore]] -> Double
 overlapRatioCol es = sum (map overlapRatio es) / genericLength es
 
+-- | Calculates the weighted Chord Sequence Recall
 weightOverlapRatio :: [[Timed EqIgnore]] -> Double
 weightOverlapRatio es = let dur = sumDur . map durations $ es
                         in equals dur / noIgnoreDur dur
-      
+     
+teamOverlapRatios :: [[Timed EqIgnore]] -> [Double]
+teamOverlapRatios = map overlapRatio
+
+
+     
 reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
 reportAvgWOR es = 
   let (EqIDur e n i) = sumDur . map durations $ es

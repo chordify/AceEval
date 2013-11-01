@@ -65,12 +65,12 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> ([a] -> IO b)
                  -- ^ a function that aggregates the results of multiple songs
               -> Maybe (a -> c)
-                 -- ^ a possible Handle for routing the error messages
-              -> Maybe Handle
                  -- ^ a function post-processes an individual evaluation result
-                 -- that will be printed to the user
+                 -- that will be printed to the user              
+              -> Maybe Handle
+                 -- ^ a possible Handle for routing the error messages
               -> Maybe Team 
-                 -- ^ evaluates a specific team only
+                 -- ^ evaluates a specific team only, if set
                  --TODO probably we don't need Year and Collection here
               -> FilePath -> Year -> Collection -> IO ()
 evaluateMirex ef af mpp mh mteam dir y c =
