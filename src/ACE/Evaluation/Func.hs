@@ -113,8 +113,8 @@ unzipTimed td = fmap (setData td) . getData $ td
 
 reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
 reportMIREX13 ce = 
-  do let (CCEval r m s im is) = fmap weightOverlapRatio . unzipCCEval 
-                              . map (unzipCCEval . map unzipTimed) $ ce
+  do let (CCEval r m s im is) = fmap weightOverlapRatio . sequenceCCEval 
+                              . map (sequenceCCEval . map unzipTimed) $ ce
      putStrLn  "================================================"
      putStrLn ("root                        : " ++ show r  ) 
      putStrLn ("major / minor               : " ++ show m  ) 
@@ -123,7 +123,7 @@ reportMIREX13 ce =
      putStrLn ("sevenths w. inversions      : " ++ show is ++ "\n" )
       
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
-overlapRatioCCEval = fmap overlapRatio . unzipCCEval . map unzipTimed
+overlapRatioCCEval = fmap overlapRatio . sequenceCCEval . map unzipTimed
 
 
 --------------------------------------------------------------------------------
