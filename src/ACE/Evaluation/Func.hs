@@ -87,7 +87,9 @@ teamOverlapRatios :: (CCEval (Timed EqIgnore) -> (Timed EqIgnore) )
 teamOverlapRatios f = map (overlapRatio . map (f . unzipTimed) )
 
 csvPerSongForAllTeams :: [[Double]] -> IO ()
-csvPerSongForAllTeams = mapM_ (putStrLn . intercalate "," . map show) . transpose 
+csvPerSongForAllTeams d = 
+  do putStrLn "" 
+     mapM_ (putStrLn . intercalate "," . map show) . transpose $ d
      
 reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
 reportAvgWOR es = 

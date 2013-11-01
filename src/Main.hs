@@ -91,7 +91,7 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
           case fileOrDir arg of
             Left  f ->    (pEvalFuncFile arg) mh f 
             Right d -> do t <- pTeam arg d y c
-                          (pEvalFuncDir arg) mh t d y c 
+                          (pEvalFuncDir arg) mh t (d </> show y </> show c)
 
 printReturn :: Show a => a -> IO (a)
 printReturn a = print a >> return a
@@ -162,20 +162,21 @@ pEvalFuncFile arg =
 
               
 pEvalFuncDir :: Args MirexArgs 
-             -> Maybe Handle -> Maybe Team -> FilePath -> Year -> Collection 
-             -> IO ()
-pEvalFuncDir arg = let r  = const . return $ () 
+             -> Maybe Handle -> Maybe Team -> FilePath -> IO ()
+pEvalFuncDir arg = let r     = const . return $ () 
+                       tpf t = "Team: " ++ show t ++ "\n"
                    in case getRequiredArg arg VocabularyMapping of
-  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (pVerb arg overlapRatio)
-  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (pVerb arg overlapRatio)
-  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR r (pVerb arg overlapRatio)
-  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (pVerb arg overlapRatio)
-  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (pVerb arg overlapRatio)
-  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (pVerb arg overlapRatioCCEval)
-  "mx13csv"   -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) csvPerSongForAllTeams (pVerb arg overlapRatioCCEval)
-  "segment"   -> evaluateMirex segmentEval reportSegment r (pVerb arg normSegEval)
+  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
+  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
+  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
+  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
+  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
+  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (Just tpf) (pVerb arg overlapRatioCCEval)
+  "mx13csv"   -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
+                   csvPerSongForAllTeams (Just (\x -> show x ++ ",")) (pVerb arg overlapRatioCCEval)
+  "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg normSegEval)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
-
+  
 pFormat :: Args MirexArgs -> Format
 pFormat arg = case toFormat $ getRequiredArg arg FileFormat of
                (Just f , _) -> f
