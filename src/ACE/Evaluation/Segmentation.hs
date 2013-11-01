@@ -1,6 +1,15 @@
 {-# OPTIONS_GHC -Wall             #-}
 {-# LANGUAGE DeriveFunctor        #-}
-module ACE.Evaluation.Segmentation where
+module ACE.Evaluation.Segmentation ( SegEval (..)
+                                   , reportSegment
+                                   , segmentEval
+                                   , hamDistOverSeg
+                                   , hamDistOverSegVerb
+                                   , hamDistUnderSeg
+                                   , hamDistUnderSegVerb
+                                   , normHamDist
+                                   , normSegEval
+                                   ) where
 
 import ACE.Evaluation.ChordEq
 import ACE.Evaluation.Func 
