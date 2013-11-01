@@ -89,9 +89,9 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
           mh <- pErrStr arg
           
           case fileOrDir arg of
-            Left  f ->    (pEvalFuncFile arg) mh f
+            Left  f ->    (pEvalFuncFile arg) mh f 
             Right d -> do t <- pTeam arg d y c
-                          (pEvalFuncDir arg) mh t d y c
+                          (pEvalFuncDir arg) mh t d y c 
 
 printReturn :: Show a => a -> IO (a)
 printReturn a = print a >> return a
@@ -164,14 +164,15 @@ pEvalFuncFile arg =
 pEvalFuncDir :: Args MirexArgs 
              -> Maybe Handle -> Maybe Team -> FilePath -> Year -> Collection 
              -> IO ()
-pEvalFuncDir arg = case getRequiredArg arg VocabularyMapping of
-  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR  (pVerb arg overlapRatio)
-  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR  (pVerb arg overlapRatio)
-  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR  (pVerb arg overlapRatio)
-  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR  (pVerb arg overlapRatio)
-  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR  (pVerb arg overlapRatio)
-  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 (pVerb arg overlapRatioCCEval)
-  "segment"   -> evaluateMirex segmentEval reportSegment (pVerb arg normSegEval)
+pEvalFuncDir arg = let r  = const . return $ () 
+                   in case getRequiredArg arg VocabularyMapping of
+  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (pVerb arg overlapRatio)
+  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (pVerb arg overlapRatio)
+  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR r (pVerb arg overlapRatio)
+  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (pVerb arg overlapRatio)
+  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (pVerb arg overlapRatio)
+  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (pVerb arg overlapRatioCCEval)
+  "segment"   -> evaluateMirex segmentEval reportSegment r (pVerb arg normSegEval)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
 pFormat :: Args MirexArgs -> Format
