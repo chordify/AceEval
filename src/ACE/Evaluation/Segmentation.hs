@@ -3,12 +3,12 @@
 module ACE.Evaluation.Segmentation ( SegEval (..)
                                    , reportSegment
                                    , segmentEval
-                                   -- , hamDistOverSeg
-                                   -- , hamDistOverSegVerb
+                                   , hamDistOverSeg
+                                   , hamDistOverSegVerb
                                    , hamDistUnderSeg
-                                   -- , hamDistUnderSegVerb
-                                   , normHamDist
-                                   , normSegEval
+                                   , hamDistUnderSegVerb
+                                   -- , normHamDist
+                                   -- , normSegEval
                                    ) where
 
 import ACE.Evaluation.ChordEq
@@ -35,7 +35,7 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
 
 reportSegment :: [SegEval Double] -> IO () 
 reportSegment se = 
-  do let (SegEval us os mxs) = fmap average . sequenceSegEval . map normSegEval $ se
+  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
          n                   = genericLength se
          
          average [] = error "average: empty list"
@@ -53,28 +53,25 @@ segmentEval gt test =
       over  = 1 - (sum (hammingDist' durAllButMax test csGt ) / getEndTime test)
   in SegEval under over (min under over)
       
--- hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> Double
-                -- -> IO ([Double], Double)   
--- hamDistUnderSegVerb gt test = hammingDistVerb gt test
+hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
+hamDistUnderSegVerb gt test = hammingDistVerb gt test
 
--- hamDistOverSegVerb :: [Timed RefLab] -> [Timed ChordLabel]
-                   -- -> IO ([Double], Double)   
--- hamDistOverSegVerb gt test = hammingDistVerb test gt
+hamDistOverSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double   
+hamDistOverSegVerb gt test = hammingDistVerb test gt
 
 hamDistUnderSeg :: [Timed RefLab] -> [Timed ChordLabel] -> Double
 hamDistUnderSeg gt test = hammingDist gt test
 
--- hamDistOverSeg :: [Timed RefLab] -> [Timed ChordLabel] -> ([Double], Double)   
--- hamDistOverSeg gt test = hammingDist test gt
+hamDistOverSeg :: [Timed RefLab] -> [Timed ChordLabel] -> Double 
+hamDistOverSeg gt test = hammingDist test gt
 
 -- | Calculates the directional hamming distance for two sequences, like
 -- 'hammingDist', but verbosely prints the result of the segmentation 
 -- evaluation. 
-hammingDistVerb :: (Show a, Show b ) => [Timed a] -> [Timed b] 
-                -> IO ([Double], Double)
+hammingDistVerb :: (Show a, Show b ) => [Timed a] -> [Timed b] -> IO Double
 hammingDistVerb x y = do let csb = snd . unzipTimed $ crossSegment x y
                          r <- sequence $ hammingDist' durAllButMaxVerb x csb
-                         return ( r, getEndTime x ) where
+                         return ( 1 - ((sum r) /  getEndTime x )) where
                            
   durAllButMaxVerb :: (Show a, Show b ) => Timed a -> [Timed b] -> IO Double
   durAllButMaxVerb _ [] = error "durAllButMaxVerb: empty list"
@@ -117,11 +114,6 @@ hammingDist' _ []  _ = error "hammingDist': comparing sequences of different len
 hammingDist' _ _  [] = error "hammingDist': comparing sequences of different lengths"
 hammingDist' mxf (g:gt) tst = mxf g t : hammingDist' mxf gt ts
     where  (t,ts) = span (\x -> offset x <= offset g) tst
-
--- | Normalises the results of 'hammingDist' and 'hammingDistVerb' returning
--- the actual directional Hamming distance
-normHamDist :: ([Double], Double) -> Double
-normHamDist (hd, totLen) =  1 - ( (sum hd) / totLen ) 
 
 -- | Normalises the results of 'hammingDist', /d/, when it has been applied
 -- for under segmentation /d(gt,test)/ and over segmentation /d(test,gt)/ 

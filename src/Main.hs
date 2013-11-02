@@ -152,12 +152,12 @@ pEvalFuncFile arg =
     ("mirex2013", True ) -> evaluateMChordsVerb (printOverlapEval chordClassEq) overlapRatioCCEval
     ("mirex2013", False) -> evaluateMChords (overlapEval chordClassEq) overlapRatioCCEval
     -- probably it's better to create another mode
-    -- ("underSeg" , True ) -> evaluateMChordsVerb hamDistUnderSegVerb normHamDist
+    ("underSeg" , True ) -> evaluateMChordsVerb hamDistUnderSegVerb id
     ("underSeg" , False) -> evaluateMChords hamDistUnderSeg id
-    -- ("overSeg"  , True ) -> evaluateMChordsVerb hamDistOverSegVerb normHamDist
-    -- ("overSeg"  , False) -> evaluateMChords hamDistOverSeg normHamDist
+    ("overSeg"  , True ) -> evaluateMChordsVerb hamDistOverSegVerb id
+    ("overSeg"  , False) -> evaluateMChords hamDistOverSeg id
     ("segment"  , True ) -> usageError arg "please use overSeg and underSeg"
-    ("segment"  , False) -> evaluateMChords segmentEval normSegEval
+    ("segment"  , False) -> evaluateMChords segmentEval id
     (m, _) -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
 
               
@@ -175,7 +175,7 @@ pEvalFuncDir arg = let r      = const . return $ ()
   "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (Just tpf) (pVerb arg overlapRatioCCEval)
   "mx13root"  -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
-  "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg normSegEval)
+  "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg id)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format
