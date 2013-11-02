@@ -4,7 +4,7 @@ module ACE.Evaluation.ChordClass ( ChordClass
                                  , compareCC
                                  , CCEval (..)
                                  , toCCEval
-                                 , unzipCCEval
+                                 , sequenceCCEval
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -17,12 +17,12 @@ data Inv    = FstInv | SecInv | NoInv | OtherBass deriving (Eq, Show)
 newtype RootPC = RootPC Int deriving (Eq, Show)
 data ChordClass = ChordClass RootPC MajMin Sevth Inv  deriving (Eq, Show)
 
-data CCEval a = CCEval a  -- root
-                       a  -- majmin
-                       a  -- seventh
-                       a  -- majmin inv
-                       a  -- seventh inv
-                       deriving (Eq, Functor)
+data CCEval a = CCEval { eRoot      :: a  -- root
+                       , eMajMin    :: a  -- majmin
+                       , eSevth     :: a  -- seventh
+                       , eMajMinInv :: a  -- majmin inv
+                       , eSevthInv  :: a  -- seventh inv
+                       } deriving (Eq, Functor)
                        
 instance Show a => Show (CCEval a) where
   show (CCEval r m s im is) = intercalate "," . map show $ [r,m,s,im,is] 
@@ -30,8 +30,8 @@ instance Show a => Show (CCEval a) where
 toCCEval :: a -> CCEval a
 toCCEval e = CCEval e e e e e
                 
-unzipCCEval :: [CCEval a] -> CCEval [a]
-unzipCCEval = foldr step (CCEval [] [] [] [] []) where
+sequenceCCEval :: [CCEval a] -> CCEval [a]
+sequenceCCEval = foldr step (CCEval [] [] [] [] []) where
   step :: CCEval b -> CCEval [b] -> CCEval [b] 
   step (CCEval r m s im is) (CCEval rs ms ss ims iss) 
     = CCEval (r:rs) (m:ms) (s:ss) (im:ims) (is:iss)

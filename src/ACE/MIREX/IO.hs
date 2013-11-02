@@ -57,35 +57,39 @@ evaluateMChordsVerb ef pp mh fp =
      evaluate (\a b -> ef a b >>= return . pp) mc >>= print
      
   
--- | Given an evaluation metric, a 
--- MIREX results base directory, a year, and a collection, we evaluate all
--- chord recognition results from that particular year and collection
+-- | Given an evaluation function that compares two chord sequences, a function
+-- that aggregates the results per team, a function that aggregates the results
+-- for all teams, and a directory, evaluateMirex performs the evaluation. 
+-- Optionally... 
 evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a) 
                  -- ^ a function that evaluates a song 
               -> ([a] -> IO b)
                  -- ^ a function that aggregates the results of multiple songs
+              -> ([b] -> IO ())   
+                 -- ^ a function that aggregates the results of multiple teams
+              -> Maybe (Team -> String)
+                 -- ^ a function that specifies how the team name should be
+                 -- printed
               -> Maybe (a -> c)
-                 -- ^ a possible Handle for routing the error messages
-              -> Maybe Handle
                  -- ^ a function post-processes an individual evaluation result
-                 -- that will be printed to the user
+                 -- that will be printed to the user providing verbose feedback             
+              -> Maybe Handle
+                 -- ^ a possible Handle for routing the error messages
               -> Maybe Team 
-                 -- ^ evaluates a specific team only
+                 -- ^ evaluates a specific team only, if set
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> Year -> Collection -> IO ()
-evaluateMirex ef af mpp mh mteam dir y c =
-   do let baseDir = dir </> show y </> show c
-
-          -- | Evaluates the submission of a single team
+              -> FilePath -> IO ()
+evaluateMirex ef af atf mtp mpp mh mteam dir =
+   do let -- | Evaluates the submission of a single team
           -- doTeam :: Show c => Team -> IO c
           doTeam tm = 
-            do putStrLn $ "Team " ++ tm
+            do when (isJust mtp) . putStr . (fromJust mtp) $ tm
                getTeamFiles tm >>= parallel . map evaluateMChord >>= af
 
           -- | returns the files for one team
           getTeamFiles :: Team -> IO [(Team, FilePath)]
-          getTeamFiles tm = getCurDirectoryContents (baseDir </> tm)
-                          >>= return . map (\fp -> (tm, baseDir </> tm </> fp))
+          getTeamFiles tm = getCurDirectoryContents (dir </> tm)
+                          >>= return . map (\fp -> (tm, dir </> tm </> fp))
 
           -- Evaluates a single file
           -- evaluateMChord :: (Team, FilePath) -> IO a
@@ -98,13 +102,13 @@ evaluateMirex ef af mpp mh mteam dir y c =
                           return r
                   else error "evaluateMChord: teams don't match"
 
-      tms <- getCurDirectoryContents baseDir 
+      tms <- getCurDirectoryContents dir 
       -- if mteam is set, we only only evaluate one team, 
       -- and otherwise everything else too
       let tms' = case mteam of
                    Just t  -> filter (t ==) tms
                    Nothing -> tms
-      mapM_ doTeam tms'
+      mapM doTeam tms' >>= atf
 
 -- | Reads a MIREX file and returns an 'MChords'
 readMChords :: Maybe Handle -> FilePath -> IO MChords

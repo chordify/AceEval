@@ -18,9 +18,11 @@ module ACE.Evaluation.Func (
       overlapEval
     , overlapRatio
     , overlapRatioCol
+    , teamOverlapRatios
     , weightOverlapRatio
     , reportAvgWOR
     , reportMIREX13
+    , csvPerSongForAllTeams
     , overlapRatioCCEval
     , printOverlapEval
     -- * Utilities
@@ -34,7 +36,7 @@ import ACE.Evaluation.ChordClass
 import HarmTrace.Base.Time 
 import HarmTrace.Base.Chord 
 
-import Data.List                 ( genericLength, intercalate )
+import Data.List                 ( genericLength, intercalate, transpose )
 import Text.Printf               ( printf )
 
 --------------------------------------------------------------------------------
@@ -64,17 +66,31 @@ sumDur = foldr step (EqIDur 0 0 0) where
   step :: EqIDur -> EqIDur -> EqIDur
   step (EqIDur e n i) (EqIDur e2 n2 i2) = EqIDur (e + e2) (n + n2) (i + i2)
 
+-- | Calculates the Chord Sequence Recall: the correct overlap between
+-- the groundtruth chord annotation and the predicted annotation
 overlapRatio :: [Timed EqIgnore] -> Double
 overlapRatio es = let dur = durations es
                   in equals dur / noIgnoreDur dur
 
+-- | Calculates and averages the Chord Sequence Recall for a list of evaluation
+-- results 
 overlapRatioCol :: [[Timed EqIgnore]] -> Double
 overlapRatioCol es = sum (map overlapRatio es) / genericLength es
 
+-- | Calculates the weighted Chord Sequence Recall
 weightOverlapRatio :: [[Timed EqIgnore]] -> Double
 weightOverlapRatio es = let dur = sumDur . map durations $ es
                         in equals dur / noIgnoreDur dur
-      
+     
+teamOverlapRatios :: Functor f => (f (Timed EqIgnore) -> (Timed EqIgnore) ) 
+                  -> [[Timed (f EqIgnore)]] -> [Double]
+teamOverlapRatios f = map (overlapRatio . map (f . unzipTimed) )
+
+csvPerSongForAllTeams :: [[Double]] -> IO ()
+csvPerSongForAllTeams d = 
+  do putStrLn "" 
+     mapM_ (putStrLn . intercalate "," . map show) . transpose $ d
+     
 reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
 reportAvgWOR es = 
   let (EqIDur e n i) = sumDur . map durations $ es
@@ -97,8 +113,8 @@ unzipTimed td = fmap (setData td) . getData $ td
 
 reportMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
 reportMIREX13 ce = 
-  do let (CCEval r m s im is) = fmap weightOverlapRatio . unzipCCEval 
-                              . map (unzipCCEval . map unzipTimed) $ ce
+  do let (CCEval r m s im is) = fmap weightOverlapRatio . sequenceCCEval 
+                              . map (sequenceCCEval . map unzipTimed) $ ce
      putStrLn  "================================================"
      putStrLn ("root                        : " ++ show r  ) 
      putStrLn ("major / minor               : " ++ show m  ) 
@@ -107,7 +123,7 @@ reportMIREX13 ce =
      putStrLn ("sevenths w. inversions      : " ++ show is ++ "\n" )
       
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
-overlapRatioCCEval = fmap overlapRatio . unzipCCEval . map unzipTimed
+overlapRatioCCEval = fmap overlapRatio . sequenceCCEval . map unzipTimed
 
 
 --------------------------------------------------------------------------------

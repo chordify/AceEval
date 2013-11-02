@@ -1,6 +1,15 @@
 {-# OPTIONS_GHC -Wall             #-}
 {-# LANGUAGE DeriveFunctor        #-}
-module ACE.Evaluation.Segmentation where
+module ACE.Evaluation.Segmentation ( SegEval (..)
+                                   , reportSegment
+                                   , segmentEval
+                                   , hamDistOverSeg
+                                   , hamDistOverSegVerb
+                                   , hamDistUnderSeg
+                                   , hamDistUnderSegVerb
+                                   , normHamDist
+                                   , normSegEval
+                                   ) where
 
 import ACE.Evaluation.ChordEq
 import ACE.Evaluation.Func 
@@ -10,13 +19,6 @@ import HarmTrace.Base.Time
 
 import Text.Printf               ( printf )
 import Data.List                 ( intercalate, genericLength )
-
--- import Debug.Trace
-
--- myTrace (a,b) = trace (myShow a ++ myShow b) (a,b)  where
-  
-  -- myShow :: Show a => [a] -> String
-  -- myShow = intercalate "\n" . map show 
 
 data SegEval a = SegEval a -- under segmentation score d(gt,test)
                          a -- over  segmentation score d(test,gt)
