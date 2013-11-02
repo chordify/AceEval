@@ -33,6 +33,10 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
   step :: SegEval b -> SegEval [b] -> SegEval [b] 
   step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
 
+
+teamSegmentation :: a
+teamSegmentation = undefined
+  
 reportSegment :: [SegEval Double] -> IO () 
 reportSegment se = 
   do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
@@ -106,7 +110,8 @@ hammingDist a b = let csB = snd . unzipTimed $ crossSegment a b
 durAllButMax :: a -> [Timed b] -> Double
 durAllButMax _ [] = error "durAllButMax: empty list"
 durAllButMax _ td = let d = map duration td in (sum d) - (maximum d)
-  
+
+-- Does the actual work for the hamming distance functions
 hammingDist' :: (Show a, Show b ) => (Timed a -> [Timed b] -> c) 
              -> [Timed a] -> [Timed b] -> [c]
 hammingDist' _ [] [] = []
@@ -115,15 +120,10 @@ hammingDist' _ _  [] = error "hammingDist': comparing sequences of different len
 hammingDist' mxf (g:gt) tst = mxf g t : hammingDist' mxf gt ts
     where  (t,ts) = span (\x -> offset x <= offset g) tst
 
--- | Normalises the results of 'hammingDist', /d/, when it has been applied
--- for under segmentation /d(gt,test)/ and over segmentation /d(test,gt)/ 
--- returning both normalised directional Hamming distance and their maximum
-normSegEval :: SegEval Double -> SegEval Double
-normSegEval (SegEval u o totLen) = let dus = 1 - ( u / totLen )
-                                       dos = 1 - ( o / totLen )
-                                   in SegEval dus dos (min dus dos)
+--------------------------------------------------------------------------------
+-- Utitlities (move to HarmTrace.Base.Time???)
+--------------------------------------------------------------------------------
 
-                      
 unzipTimed :: [Timed (a,b)] -> ([Timed a], [Timed b])  
 unzipTimed = unzip . map liftTimedTuple
   

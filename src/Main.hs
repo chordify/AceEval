@@ -163,7 +163,9 @@ pEvalFuncFile arg =
               
 pEvalFuncDir :: Args MirexArgs 
              -> Maybe Handle -> Maybe Team -> FilePath -> IO ()
-pEvalFuncDir arg = let r      = const . return $ () 
+pEvalFuncDir arg = let -- a function that we'll use for *not* aggregating results for all teams
+                       r      = const . return $ () 
+                       -- custom team printing functions
                        tpf t  = "Team: " ++ show t ++ "\n"
                        tcsv t = show t ++ ","
                    in case getRequiredArg arg VocabularyMapping of
@@ -175,6 +177,8 @@ pEvalFuncDir arg = let r      = const . return $ ()
   "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (Just tpf) (pVerb arg overlapRatioCCEval)
   "mx13root"  -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
+  -- "mx13root"  -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
+                   -- csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg id)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
