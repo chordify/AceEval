@@ -8,12 +8,12 @@ module ACE.Evaluation.ChordClass ( ChordClass
                                  )where
 
 import ACE.Evaluation.EqIgnore
-import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..) )
+import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..), Sev )
 import Data.IntSet                 ( IntSet )
 import Data.List                   ( intercalate )
 
 data MajMin = MajClass | MinClass | NoMajMin deriving (Eq, Show)
-data Inv    = FstInv | SecInv | NoInv deriving (Eq, Show)
+data Inv    = FstInv | SecInv | NoInv | OtherBass deriving (Eq, Show)
 newtype RootPC = RootPC Int deriving (Eq, Show)
 data ChordClass = ChordClass RootPC MajMin Sevth Inv  deriving (Eq, Show)
 
@@ -25,7 +25,7 @@ data CCEval a = CCEval { eRoot      :: a  -- root
                        } deriving (Eq, Functor)
                        
 instance Show a => Show (CCEval a) where
-  show (CCEval r m s im is) = intercalate " " . map show $ [r,m,s,im,is] 
+  show (CCEval r m s im is) = intercalate "," . map show $ [r,m,s,im,is] 
 
 toCCEval :: a -> CCEval a
 toCCEval e = CCEval e e e e e
@@ -51,8 +51,9 @@ toRootPC = RootPC . rootPC
 
 toSevth :: MajMin -> IntSet -> Sevth
 toSevth m is = case (m, analyseSevth is) of
-                (_       , DimSev) -> NoSev -- :dim     unsupported
-                (MinClass, MajSev) -> NoSev -- :minmaj7 unsupported
+             -- We use the DimSev as a unsupported value
+             --   (_       , DimSev) -> NoSev -- :dim     unsupported
+                (MinClass, MajSev) -> DimSev -- :minmaj7 unsupported
                 (_       ,s      ) -> s
                   
 -- | We require the third and the fifth to be present. Hence, @D:maj(*5)@ will
@@ -69,25 +70,24 @@ toInv _        (Note Nat I1) = NoInv
 toInv _        (Note Nat I5) = SecInv
 toInv MajClass (Note Nat I3) = FstInv
 toInv MinClass (Note Fl  I3) = FstInv
-toInv _        _             = NoInv  -- other inversions are unsupported
+toInv _        _             = OtherBass  -- other inversions are unsupported
   
-
 compareCC :: ChordClass -> ChordClass -> CCEval EqIgnore
--- compareCC (ChordClass _ NoMajMin _ _) (ChordClass _ _ _ _)  = toCCEval Ignore
-compareCC (ChordClass ra ma sa ia) (ChordClass rb mb sb ib) 
-  | ra /= rb  = toCCEval NotEq
-  | otherwise = let mm = case (ma,mb) of 
-                           (NoMajMin, _) -> Ignore
-                           (_, NoMajMin) -> Ignore
-                           _             -> ma ==* mb
-                    sm = sa ==* sb
-                    im = ia ==* ib
-                in CCEval Equal
-                   ( mm                 ) -- only major an minor 
-                   ( mm &&*  sm         ) -- major minor and 
-                   ( mm &&*  im         ) 
-                   ( mm &&* (sm &&* im) ) 
-                   
-
+compareCC (ChordClass rgt mgt sgt igt) (ChordClass rp mp sp ip) 
+  = let rt = rgt ==* rp
+        mm = case (mgt,mp) of (NoMajMin, _) -> Ignore
+                              (_, NoMajMin) -> NotEq
+                              _             -> mgt ==* mp
+        sm = case (sgt,sp) of (DimSev, _  ) -> Ignore
+                              (_ , DimSev ) -> NotEq
+                              _               -> sgt ==* sp
+        im = case (igt,ip) of (OtherBass, _ ) -> Ignore
+                              (_ ,OtherBass ) -> NotEq
+                              _               -> igt ==* ip
+    in CCEval   rt
+              ( rt &&*  mm                  ) -- only major an minor 
+              ( rt &&* (mm &&*  sm)         ) -- major minor and 
+              ( rt &&* (mm &&*  im)         ) 
+              ( rt &&* (mm &&* (sm &&* im)) ) 
                    
                    

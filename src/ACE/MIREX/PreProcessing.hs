@@ -6,7 +6,7 @@ module ACE.MIREX.PreProcessing ( Edit
 import ACE.MIREX.Data
 
 import HarmTrace.Base.Time   ( Timed (..), splitTimed, getEndTime
-                             , offset, onset, duration, timed )
+                             , offset, onset, duration, timed, concatTimed )
 import HarmTrace.Base.Chord  ( ChordLabel, Chord (..) )
 import Control.Monad.State   ( State, modify, runState )
 import Data.List             ( partition, intercalate )
@@ -75,6 +75,7 @@ preProcess' mc = do c  <- process Pred . chords $ mc
   -- Performs a series of pre-processing operations
   process :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
   process s cs = filterZeroLen s cs >>= fill s >>= fixStart s >>= fixEnd s 
+                                    >>= return . reduceTimed
   
   -- fill "holes" in a chord sequence
   fill :: Source -> [Timed ChordLabel] -> State [PPLog] [Timed ChordLabel]
@@ -130,6 +131,18 @@ preProcess' mc = do c  <- process Pred . chords $ mc
                 
                toChord Pred = NoChord -- UndefChord
                toChord Gt   = NoChord
+             
+-- | Returns the reduced chord sequences, where repeated chords are merged
+-- into one 'ProbChord', wrapped in a 'Timed' type.
+reduceTimed :: Eq a => [Timed a] -> [Timed a]
+reduceTimed = foldr group [] where
+
+   group :: Eq a => Timed a -> [Timed a] -> [Timed a]
+   group c [] = [c]
+   -- group tc@(Timed c tsc ) (th@(Timed h tsh ) : t)
+   group c (h : t)
+     | getData c == getData h = concatTimed (getData h) c   h : t
+     | otherwise              =                         c : h : t 
              
 --------------------------------------------------------------------------------
 -- Utilities
