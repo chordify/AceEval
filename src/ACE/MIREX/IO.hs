@@ -105,10 +105,10 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
 
       tms <- getCurDirectoryContents dir 
       -- if mteam is set, we only only evaluate one team, 
-      -- and otherwise everything else too
+      -- and otherwise we only ignore the "Ground-Truth" directory
       let tms' = case mteam of
                    Just t  -> filter (t ==) tms
-                   Nothing -> tms
+                   Nothing -> filter ("Ground-truth" /=) tms
       ar <- mapM doTeam tms' -- all results 
       atf $! ar
 
