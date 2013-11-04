@@ -84,7 +84,8 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
           -- doTeam :: Show c => Team -> IO c
           doTeam tm = 
             do when (isJust mtp) . putStr . (fromJust mtp) $ tm
-               getTeamFiles tm >>= parallel . map evaluateMChord >>= af
+               tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
+               af $! tr
 
           -- | returns the files for one team
           getTeamFiles :: Team -> IO [(Team, FilePath)]
@@ -99,7 +100,7 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
                   then do let r = evaluate ef mc
                           when (isJust mpp) . putStrLn 
                              $ show mc ++ " " ++ (show . fromJust mpp $ r)
-                          return r
+                          r `seq` return r
                   else error "evaluateMChord: teams don't match"
 
       tms <- getCurDirectoryContents dir 
@@ -108,7 +109,8 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
       let tms' = case mteam of
                    Just t  -> filter (t ==) tms
                    Nothing -> tms
-      mapM doTeam tms' >>= atf
+      ar <- mapM doTeam tms' -- all results 
+      atf $! ar
 
 -- | Reads a MIREX file and returns an 'MChords'
 readMChords :: Maybe Handle -> FilePath -> IO MChords

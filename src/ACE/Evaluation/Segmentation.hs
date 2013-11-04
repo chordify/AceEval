@@ -9,6 +9,7 @@ module ACE.Evaluation.Segmentation ( SegEval (..)
                                    , hamDistUnderSegVerb
                                    -- , normHamDist
                                    -- , normSegEval
+                                   , average
                                    ) where
 
 import ACE.Evaluation.ChordEq
@@ -20,10 +21,10 @@ import HarmTrace.Base.Time
 import Text.Printf               ( printf )
 import Data.List                 ( intercalate, genericLength )
 
-data SegEval a = SegEval a -- under segmentation score d(gt,test)
-                         a -- over  segmentation score d(test,gt)
-                         a -- total duration of the ground truth
-                         deriving (Eq, Functor)
+data SegEval a = SegEval { underSeg :: a -- under segmentation score 1- d(gt,test)
+                         , overSeg  :: a -- over  segmentation score 1- d(test,gt)
+                         , segScore :: a -- the final segmenation score (min of the above)
+                         } deriving (Eq, Functor)
                        
 instance Show a => Show (SegEval a) where
   show (SegEval u o l) = intercalate " " . map show $ [u,o,l] 
@@ -34,16 +35,12 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
   step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
 
 
-teamSegmentation :: a
-teamSegmentation = undefined
+-- teamSegmentation :: (SegEval Double -> Double) -> [SegEval Double] -> Double
+-- teamSegmentation f = average . map f 
   
 reportSegment :: [SegEval Double] -> IO () 
 reportSegment se = 
   do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
-         n                   = genericLength se
-         
-         average [] = error "average: empty list"
-         average l  = sum l / n
          
      putStrLn  "================================================"
      putStrLn ("under segmentation          : " ++ show us ) 
@@ -52,10 +49,10 @@ reportSegment se =
   
 segmentEval :: [Timed RefLab] -> [Timed ChordLabel] -> SegEval Double
 segmentEval gt test = 
-  let (csGt, csTst) = unzipTimed $ crossSegment gt test 
+  let (csGt, csTst) = unzipTimed $! crossSegment gt test 
       under = 1 - (sum (hammingDist' durAllButMax gt   csTst) / getEndTime gt  )
       over  = 1 - (sum (hammingDist' durAllButMax test csGt ) / getEndTime test)
-  in SegEval under over (min under over)
+  in under `seq` over `seq` SegEval under over (min under over)
       
 hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
 hamDistUnderSegVerb gt test = hammingDistVerb gt test
@@ -121,8 +118,14 @@ hammingDist' mxf (g:gt) tst = mxf g t : hammingDist' mxf gt ts
     where  (t,ts) = span (\x -> offset x <= offset g) tst
 
 --------------------------------------------------------------------------------
--- Utitlities (move to HarmTrace.Base.Time???)
+-- Utilities (move to HarmTrace.Base.Time???)
 --------------------------------------------------------------------------------
+
+-- TODO move somewhere else
+-- | Calculated the average of list of numbers
+average :: Fractional a => [a] -> a
+average [] = error "average: empty list"
+average l  = sum l / genericLength l
 
 unzipTimed :: [Timed (a,b)] -> ([Timed a], [Timed b])  
 unzipTimed = unzip . map liftTimedTuple

@@ -175,10 +175,9 @@ pEvalFuncDir arg = let -- a function that we'll use for *not* aggregating result
   "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (Just tpf) (pVerb arg overlapRatioCCEval)
-  "mx13root"  -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
+  "mx13majmin"-> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
-  -- "mx13root"  -> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
-                   -- csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
+  "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg id)
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg id)
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
