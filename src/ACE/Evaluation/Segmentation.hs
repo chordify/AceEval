@@ -46,6 +46,13 @@ reportSegment se =
      putStrLn ("under segmentation          : " ++ show us ) 
      putStrLn ("over segmentation           : " ++ show os ) 
      putStrLn ("average segmentation quality: " ++ show mxs ++ "\n")  
+     
+csvSegment :: [SegEval Double] -> IO () 
+csvSegment se = 
+  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se     
+     putStrLn . intercalate "," . map show $ [us, os, mxs]
+  
+     
   
 segmentEval :: [Timed RefLab] -> [Timed ChordLabel] -> SegEval Double
 segmentEval gt test = 

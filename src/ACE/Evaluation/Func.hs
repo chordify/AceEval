@@ -22,6 +22,7 @@ module ACE.Evaluation.Func (
     , weightOverlapRatio
     , reportAvgWOR
     , reportMIREX13
+    , csvMIREX13
     , csvPerSongForAllTeams
     , overlapRatioCCEval
     , printOverlapEval
@@ -122,7 +123,13 @@ reportMIREX13 ce =
      putStrLn ("sevenths                    : " ++ show s  ) 
      putStrLn ("major / minor w. inversions : " ++ show im ) 
      putStrLn ("sevenths w. inversions      : " ++ show is ++ "\n" )
-      
+
+csvMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
+csvMIREX13 ce = 
+  do let (CCEval r m s im is) = fmap weightOverlapRatio . sequenceCCEval 
+                              . map (sequenceCCEval . map unzipTimed) $ ce
+     putStrLn . intercalate "," . map show $ [r,m,s,im,is]
+     
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
 overlapRatioCCEval = fmap overlapRatio . sequenceCCEval . map unzipTimed
 

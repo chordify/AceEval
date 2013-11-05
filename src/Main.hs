@@ -174,7 +174,7 @@ pEvalFuncDir arg = let -- a function that we'll use for *not* aggregating result
   "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
   "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (Just tpf) (pVerb arg overlapRatio)
-  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) reportMIREX13 r (Just tpf) (pVerb arg overlapRatioCCEval)
+  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) csvMIREX13 r (Just tcsv) (pVerb arg overlapRatioCCEval)
   "mx13majmin"-> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg overlapRatioCCEval)
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg id)
