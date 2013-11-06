@@ -99,7 +99,7 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
                if tm == team mc
                   then do let r = evaluate ef mc
                           when (isJust mpp) . putStrLn 
-                             $ show mc ++ " " ++ (show . fromJust mpp $ r)
+                             $ show mc ++ "," ++ (show . fromJust mpp $ r)
                           r `seq` return r
                   else error "evaluateMChord: teams don't match"
 
