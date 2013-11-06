@@ -22,13 +22,14 @@ import System.FilePath         ( (</>), splitDirectories, joinPath
 
 data Format     = JS | LAB deriving (Show, Eq)
 data Collection = Billboard | Beatles   deriving (Show, Eq)
-data Year       = Y2010 | Y2011 | Y2012
+data Year       = Y2010 | Y2011 | Y2012 | Y2013
 type Team       = String
 
 instance Show Year where
   show Y2010 = "2010"
   show Y2011 = "2011"
   show Y2012 = "2012"
+  show Y2013 = "2013"
   
 data MChords    = MChords { collection  :: Collection
                           , year        :: Year
@@ -75,6 +76,7 @@ toYear s = case s of
             "2010" -> (Just Y2010, [])
             "2011" -> (Just Y2011, [])
             "2012" -> (Just Y2012, [])
+            "2013" -> (Just Y2013, [])
             m      -> (Nothing, "unrecognised year: " ++ m)
 
 toFormat :: String -> (Maybe Format, String)
@@ -97,7 +99,7 @@ toFileName dir y c t i f = dir </> show y </> show c </> t </> toID where
 
   toID :: String
   toID = case (f,c) of
-           (LAB, Beatles)   -> printf "chordschordmrx09000%03d.lab" i
+           (LAB, Beatles)   -> printf "chordschordmrx0900%03d.lab" i
            (JS,  Beatles)   -> printf "chordmrx09000%03d.js" i
            (LAB, Billboard) -> printf "chords%04d.lab" i
            (JS,  Billboard) -> printf "%04d.js" i
