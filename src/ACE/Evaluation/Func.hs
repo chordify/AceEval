@@ -133,7 +133,6 @@ csvMIREX13 ce =
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
 overlapRatioCCEval = fmap overlapRatio . sequenceCCEval . map unzipTimed
 
-
 --------------------------------------------------------------------------------
 -- Evaluation functions
 --------------------------------------------------------------------------------  
@@ -141,8 +140,7 @@ overlapRatioCCEval = fmap overlapRatio . sequenceCCEval . map unzipTimed
 -- TODO rename to chord symbol recall
   
 overlapEval :: (RefLab -> ChordLabel -> a) 
-            -> [Timed RefLab] -> [Timed ChordLabel] 
-            -> [Timed a] 
+            -> [Timed RefLab] -> [Timed ChordLabel] -> [Timed a] 
 overlapEval eq gt test = map eval $ crossSegment gt test where
   
   -- eval :: Timed (RefLab, ChordLabel) -> (Timed a)

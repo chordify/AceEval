@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wall             #-}
 {-# LANGUAGE DeriveFunctor        #-}
-module ACE.Evaluation.Segmentation ( SegEval (..)
+module ACE.Evaluation.Segmentation ( SegEval
+                                   , segScore
                                    , reportSegment
                                    , segmentEval
                                    , hamDistOverSeg
@@ -20,19 +21,30 @@ import HarmTrace.Base.Time
 
 import Text.Printf               ( printf )
 import Data.List                 ( intercalate, genericLength )
+import Prelude hiding            ( foldr, head, tail )
+import Data.Foldable             ( foldr )
+import Data.FixedList
 
-data SegEval a = SegEval { underSeg :: a -- under segmentation score 1- d(gt,test)
-                         , overSeg  :: a -- over  segmentation score 1- d(test,gt)
-                         , segScore :: a -- the final segmenation score (min of the above)
-                         } deriving (Eq, Functor)
-                       
-instance Show a => Show (SegEval a) where
-  show (SegEval u o l) = intercalate " " . map show $ [u,o,l] 
+-- data SegEval a = SegEval { underSeg :: a -- under segmentation score 1- d(gt,test)
+                         -- , overSeg  :: a -- over  segmentation score 1- d(test,gt)
+                         -- , segScore :: a -- the final segmentation score (min of the above)
+                         -- } deriving (Eq, Functor)
+type SegEval a = FixedList3 a 
+
+segScore :: SegEval a -> a
+segScore = head . tail . tail
+
+segEval :: a -> a -> a -> SegEval a
+segEval a b c = a :. b :. c :. Nil                   
+                   
+csv :: (Show a, FixedList f) => Cons f a -> String
+csv = intercalate " " . map show . foldr (:) [] 
   
 sequenceSegEval :: [SegEval a] -> SegEval [a]
-sequenceSegEval = foldr step (SegEval [] [] []) where
-  step :: SegEval b -> SegEval [b] -> SegEval [b] 
-  step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
+sequenceSegEval = sequence
+-- sequenceSegEval = foldr step (SegEval [] [] []) where
+  -- step :: SegEval b -> SegEval [b] -> SegEval [b] 
+  -- step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
 
 
 -- teamSegmentation :: (SegEval Double -> Double) -> [SegEval Double] -> Double
@@ -40,7 +52,7 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
   
 reportSegment :: [SegEval Double] -> IO () 
 reportSegment se = 
-  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
+  do let (us :. os :. mxs :. Nil) = fmap average . sequenceSegEval $ se
          
      putStrLn  "================================================"
      putStrLn ("under segmentation          : " ++ show us ) 
@@ -48,9 +60,12 @@ reportSegment se =
      putStrLn ("average segmentation quality: " ++ show mxs ++ "\n")  
      
 csvSegment :: [SegEval Double] -> IO () 
-csvSegment se = 
-  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se     
-     putStrLn . intercalate "," . map show $ [us, os, mxs]
+csvSegment = 
+  -- do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se     
+     -- putStrLn . intercalate "," . map show . foldr (:) [] 
+     putStrLn . intercalate "," . map show     
+              . foldr (:) [] 
+              . fmap average . sequenceSegEval
   
      
   
@@ -59,7 +74,8 @@ segmentEval gt test =
   let (csGt, csTst) = unzipTimed $! crossSegment gt test 
       under = 1 - (sum (hammingDist' durAllButMax gt   csTst) / getEndTime gt  )
       over  = 1 - (sum (hammingDist' durAllButMax test csGt ) / getEndTime test)
-  in under `seq` over `seq` SegEval under over (min under over)
+  -- in under `seq` over `seq` (under :. over :. (min under over) :. Nil)
+  in under `seq` over `seq` (segEval under over (min under over))
       
 hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
 hamDistUnderSegVerb gt test = hammingDistVerb gt test
