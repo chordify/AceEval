@@ -19,6 +19,7 @@ module ACE.Evaluation (
   , module ACE.Evaluation.Func
   , module ACE.Evaluation.Segmentation 
   , module ACE.Evaluation.ChordClass 
+  , module ACE.Evaluation.ResultsPrinter
   ) where
 
 import ACE.Evaluation.EqIgnore
@@ -26,3 +27,4 @@ import ACE.Evaluation.ChordEq
 import ACE.Evaluation.Func
 import ACE.Evaluation.Segmentation
 import ACE.Evaluation.ChordClass    ( CCEval (..) ) 
+import ACE.Evaluation.ResultsPrinter

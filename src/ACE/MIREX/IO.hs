@@ -56,12 +56,12 @@ evaluateMChordsVerb ef pp mh fp =
      putStrLn (show mc ++ ": ") 
      evaluate (\a b -> ef a b >>= return . pp) mc >>= print
      
-  
+
 -- | Given an evaluation function that compares two chord sequences, a function
 -- that aggregates the results per team, a function that aggregates the results
 -- for all teams, and a directory, evaluateMirex performs the evaluation. 
 -- Optionally... 
-evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a) 
+evaluateMirex :: (Eval b, Eval c) => ([Timed RefLab] -> [Timed ChordLabel] -> a) 
                  -- ^ a function that evaluates a song 
               -> ([a] -> IO b)
                  -- ^ a function that aggregates the results of multiple songs
@@ -78,10 +78,10 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> Maybe Team 
                  -- ^ evaluates a specific team only, if set
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> IO ()
+              -> FilePath -> IO [b]
 evaluateMirex ef af atf mtp mpp mh mteam dir =
    do let -- | Evaluates the submission of a single team
-          -- doTeam :: Show c => Team -> IO c
+          -- doTeam :: Show c => Team -> IO b
           doTeam tm = 
             do when (isJust mtp) . putStr . (fromJust mtp) $ tm
                tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
@@ -111,6 +111,7 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
                    Nothing -> filter ("Ground-truth" /=) tms
       ar <- mapM doTeam tms' -- all results 
       atf $! ar
+      return ar
 
 -- | Reads a MIREX file and returns an 'MChords'
 readMChords :: Maybe Handle -> FilePath -> IO MChords

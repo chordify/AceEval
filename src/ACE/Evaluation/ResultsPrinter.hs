@@ -21,6 +21,7 @@ class Show a => Eval a
 
 instance Show a => Eval (CCEval  a)
 instance Show a => Eval (SegEval a)
+instance Eval a => Eval [a]
 instance Eval EqIgnore
 instance Eval Double
 instance Eval Int
