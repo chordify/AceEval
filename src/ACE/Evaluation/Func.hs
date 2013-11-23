@@ -93,7 +93,7 @@ csvPerSongForAllTeams d =
   do putStrLn "" 
      mapM_ (putStrLn . intercalate "," . map show) . transpose $ d
      
-reportAvgWOR :: [[Timed EqIgnore]] -> IO ()
+reportAvgWOR :: [[Timed EqIgnore]] -> IO [Double]
 reportAvgWOR es = 
   let (EqIDur e n i) = sumDur . map durations $ es
   in do putStrLn "================================================"
@@ -105,7 +105,7 @@ reportAvgWOR es =
         let wcsr = weightOverlapRatio es
         putStrLn $ printf "Chord sequence recall:         \t%.6f" (overlapRatioCol es)
         putStrLn $ printf "Weighted chord sequence recall:\t%.6f\n" wcsr
-        -- return wcsr
+        return [wcsr]
         
 
         
@@ -124,11 +124,13 @@ reportMIREX13 ce =
      putStrLn ("major / minor w. inversions : " ++ show im ) 
      putStrLn ("sevenths w. inversions      : " ++ show is ++ "\n" )
 
-csvMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO () -- (CCEval Double)
+csvMIREX13 :: [[Timed (CCEval EqIgnore)]] -> IO [Double]
 csvMIREX13 ce = 
   do let (CCEval r m s im is) = fmap weightOverlapRatio . sequenceCCEval 
                               . map (sequenceCCEval . map unzipTimed) $ ce
-     putStrLn . intercalate "," . map show $ [r,m,s,im,is]
+         out                  = [r,m,s,im,is]
+     putStrLn . intercalate "," . map show $ out
+     return out
      
 overlapRatioCCEval :: [Timed (CCEval EqIgnore)] -> CCEval Double
 overlapRatioCCEval = fmap overlapRatio . sequenceCCEval . map unzipTimed

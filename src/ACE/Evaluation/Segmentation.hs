@@ -38,14 +38,15 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
 -- teamSegmentation :: (SegEval Double -> Double) -> [SegEval Double] -> Double
 -- teamSegmentation f = average . map f 
   
-reportSegment :: [SegEval Double] -> IO () 
+reportSegment :: [SegEval Double] -> IO [Double] -- (SegEval Double)
 reportSegment se = 
-  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
+  do let r@(SegEval us os mxs) = fmap average . sequenceSegEval $ se
          
      putStrLn  "================================================"
      putStrLn ("under segmentation          : " ++ show us ) 
      putStrLn ("over segmentation           : " ++ show os ) 
-     putStrLn ("average segmentation quality: " ++ show mxs ++ "\n")  
+     putStrLn ("average segmentation quality: " ++ show mxs ++ "\n")
+     return [us, os, mxs]
      
 csvSegment :: [SegEval Double] -> IO () 
 csvSegment se = 
