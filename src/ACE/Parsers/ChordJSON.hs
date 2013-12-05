@@ -41,7 +41,9 @@ pVar sfx = f <$> (pString "var "   *> pTeam )
              <*> (pString "chords" *> pMaybe (pString "chordmrx09"))
              <*>  pInteger <* pSym '_' <* pString sfx <* (lexeme $ pString " =")
              <?> "var statement"
-             where f tm mb s = (tm, maybe Billboard (const Beatles) mb, s)
+             -- we default to Billboard 2012 data here, we did not parse
+             -- any .js files in 2013
+             where f tm mb s = (tm, maybe Billboard2012 (const Beatles) mb, s)
 
 pTeam :: Parser String
 pTeam = snoc <$> pBetween 1 4 pLetter <*> pDigit  <?> "team" where

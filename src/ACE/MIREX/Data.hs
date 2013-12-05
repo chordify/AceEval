@@ -16,12 +16,13 @@ module ACE.MIREX.Data  ( Collection (..)
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
 import Data.List               ( intercalate )
+import Data.Char               ( toLower )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), splitDirectories, joinPath
                                , takeExtension, dropExtension )
 
 data Format     = JS | LAB deriving (Show, Eq)
-data Collection = Billboard | Beatles   deriving (Show, Eq)
+data Collection = Billboard2012 | Billboard2013 | Beatles   deriving (Show, Eq)
 data Year       = Y2010 | Y2011 | Y2012 | Y2013
 type Team       = String
 
@@ -62,14 +63,14 @@ getId :: String -> Int
 getId s = read . reverse . take 4 . reverse . dropExtension $ s
 
 toCollection :: String -> (Maybe Collection, String)
-toCollection s = case s of
-                  "bb"        -> (Just Billboard, [])
-                  "bs"        -> (Just Beatles, [])
-                  "billboard" -> (Just Billboard, [])
-                  "beatles"   -> (Just Beatles, [])
-                  "Billboard" -> (Just Billboard, [])
-                  "Beatles"   -> (Just Beatles, [])
-                  m           -> (Nothing, "unrecognised collection: " ++ m)
+toCollection s = case map toLower s of
+                  "bb12"          -> (Just Billboard2012, [])
+                  "bb13"          -> (Just Billboard2013, [])
+                  "bs"            -> (Just Beatles, [])
+                  "billboard2012" -> (Just Billboard2012, [])
+                  "billboard2013" -> (Just Billboard2013, [])
+                  "beatles"       -> (Just Beatles, [])
+                  m               -> (Nothing, "unrecognised collection: " ++ m)
 
 toYear :: String -> (Maybe Year, String)
 toYear s = case s of
@@ -99,7 +100,7 @@ toFileName dir y c t i f = dir </> show y </> show c </> t </> toID where
 
   toID :: String
   toID = case (f,c) of
-           (LAB, Beatles)   -> printf "chordschordmrx0900%03d.lab" i
-           (JS,  Beatles)   -> printf "chordmrx09000%03d.js" i
-           (LAB, Billboard) -> printf "chords%04d.lab" i
-           (JS,  Billboard) -> printf "%04d.js" i
+           (JS,  Beatles)       -> printf "chordmrx09000%03d.js" i
+           (JS,  Billboard2012) -> printf "%04d.js" i
+           (JS,  Billboard2013) -> printf "%04d.js" i
+           (LAB, _            ) -> printf "%04d.lab" i
