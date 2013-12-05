@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ACE.Parsers.ChordLab where --  ( parseLabData ) where
+module ACE.Parsers.ChordLab ( pLabMChords
+                            , pGroundTruth ) where
 
 import ACE.MIREX.Data
 import HarmTrace.Base.Chord
