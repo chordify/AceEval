@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wall         #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
 import HarmTrace.Base.Chord
@@ -9,6 +11,7 @@ import ACE.Evaluation.ChordEq
 import ACE.Evaluation.Segmentation 
 
 import System.Environment (getArgs)
+import Data.Maybe         (catMaybes)
 
 main :: IO ()
 main = do a <- getArgs
@@ -27,6 +30,7 @@ main = do a <- getArgs
                         print (segmentEval x y)
                         hamDistUnderSegVerb x y
                         return ()
+            ["diff", a, b] -> diff a b >>= print
             _     -> error "please enter 1 or 2..."
 
   
@@ -40,7 +44,7 @@ testChordSeq = map (parseDataSafe pChord)
 combine :: ([ChordLabel], [ChordLabel])
 combine = unzip $ [(x,y) | x <- testChordSeq, y <- testChordSeq]
 
-addTime :: [a] -> [Timed a]
+addTime :: [a] -> [Timed a] 
 addTime a = zipWith3 timed a [0.0 ..] [1.0 ..]
 
 
@@ -54,3 +58,43 @@ fromInt = reverse . foldr step [] where
   step :: Double -> [Timed ChordLabel] -> [Timed ChordLabel]
   step i []    = [ timed d 0 i ]   
   step i (h:t) = let x = offset h in timed d x (i+x) : h : t
+  
+
+-- differ 
+
+diff :: FilePath -> FilePath -> IO Bool
+diff a b = do la <- readEval a
+              lb <- readEval b 
+              return . and =<< zipWithM lineEq la lb
+
+lineEq :: Line -> Line -> IO Bool
+lineEq (Line fpa sa da) (Line fpb sb db) 
+  | fpa /= fpa = putStrLn ( "filepaths do not match " ++ fpa ++ " " ++ fpb ) >> return False
+  | otherwise  = 
+      case myTimeComp sa sb of
+        EQ -> case myTimeComp da db of
+                EQ -> return True 
+                _  -> putStrLn (fpa ++ " has different durations " ++ show da ++ " " ++ show db) >> return False
+        _  -> putStrLn (fpa ++ " has different scores " ++ show sa ++ " " ++ show sb) >> return False
+            
+-- | compares to 'NumData' timestamps taking a rounding error 'roundingError'
+-- into account.
+myTimeComp :: NumData -> NumData -> Ordering
+myTimeComp a b 
+ | a > (b + roundError) = GT
+ | a < (b - roundError) = LT
+ | otherwise            = EQ where roundError = 0.05
+            
+data Line = Line FilePath Double Double deriving Show
+
+readEval :: FilePath -> IO [Line]
+readEval fp = readFile fp >>= return . parseDataSafe pLines
+
+pLines :: Parser [Line]
+pLines =   pListSep pLineEnd pLine
+       -- <|> pString "Triads,,"
+       -- <|> pString "File,Pairwise score (%),Duration (s)"
+       -- <|> pString "Team: \"EW1\""
+
+pLine :: Parser Line 
+pLine = Line  <$> pManyTill pAscii (pSym ',') <*> pDoubleRaw <* pSym ',' <*> pDoubleRaw
