@@ -45,9 +45,9 @@ evaluateMChords ef pp mh fp =
 evaluateMChordsVerb :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> IO a)
                    -- ^ a function that evaluates a song 
                 -> (a -> b)
-                   -- ^ a possible Handle for routing the error messages
-                -> Maybe Handle
                    -- ^ a function post-processes a evaluation result
+                -> Maybe Handle
+                   -- ^ a possible Handle for routing the error messages
                 -> FilePath
                    -- ^ the input file
                 -> IO ()
