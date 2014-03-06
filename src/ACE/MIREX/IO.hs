@@ -88,18 +88,19 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
                af $! tr
 
           -- | returns the files for one team
-          getTeamFiles :: Team -> IO [(Team, FilePath)]
+          getTeamFiles :: Team -> IO [(Team, FilePath, FilePath)]
           getTeamFiles tm = getCurDirectoryContents (dir </> tm)
-                          >>= return . map (\fp -> (tm, dir </> tm </> fp))
+                        >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
 
           -- Evaluates a single file
           -- evaluateMChord :: (Team, FilePath) -> IO a
-          evaluateMChord (tm, fp) = 
-            do mc <- readMChords mh fp 
+          evaluateMChord (tm, dir, fp) = 
+            do mc <- readMChords mh (dir </> fp) 
                if tm == team mc
                   then do let r = evaluate ef mc
                           when (isJust mpp) . putStrLn 
-                             $ show mc ++ "," ++ (show . fromJust mpp $ r)
+                             $ fp ++ "," ++ mChordStats mc 
+                                  ++ "," ++ (show . fromJust mpp $ r)
                           r `seq` return r
                   else error "evaluateMChord: teams don't match"
 

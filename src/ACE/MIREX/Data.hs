@@ -11,6 +11,7 @@ module ACE.MIREX.Data  ( Collection (..)
                        , toCollection
                        , toFormat
                        , errorise
+                       , mChordStats
                        ) where
                  
 import HarmTrace.Base.Time     ( Timed, offset )
@@ -44,7 +45,7 @@ instance Show MChords where
   show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
 
 mChordStats :: MChords -> String
-mChordStats mc = intercalate "," [ ]
+mChordStats mc = intercalate "," [show (getMinDur mc)]
   
 getMinDur :: MChords -> Double  
 getMinDur mc = let f = offset . last  
@@ -52,8 +53,8 @@ getMinDur mc = let f = offset . last
                     Nothing -> error "getMinDur: no groundtruth found"
                     Just gt -> min (f . chords $ mc) (f gt)
                     
-printDoub3d :: Double -> String
-printDoub3d d = printf "%.3f" d
+-- showDoub3d :: Double -> String
+-- showDoub3d d = printf "%.3f" d
                     
 -- getFormat :: FilePath -> Format
 -- getFormat fp = let (b,y,c,t,i,f) = fromFileName fp in f
