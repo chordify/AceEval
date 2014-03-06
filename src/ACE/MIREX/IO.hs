@@ -70,7 +70,7 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> Maybe (Team -> String)
                  -- ^ a function that specifies how the team name should be
                  -- printed
-              -> Maybe (a -> c)
+              -> Maybe [a -> c]
                  -- ^ a function post-processes an individual evaluation result
                  -- that will be printed to the user providing verbose feedback             
               -> Maybe Handle
@@ -97,11 +97,12 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
           evaluateMChord (tm, dir, fp) = 
             do mc <- readMChords mh (dir </> fp) 
                if tm == team mc
-                  then do let r = evaluate ef mc
-                          when (isJust mpp) . putStrLn 
-                             $ fp ++ "," ++ mChordStats mc 
-                                  ++ "," ++ (show . fromJust mpp $ r)
-                          r `seq` return r
+                  then let r    = evaluate ef mc
+                           sf p = show . p $ r
+                       in case mpp of
+                           Just l  -> do putStrLn . intercalate ", " $ (fp : map sf l)
+                                         return r
+                           Nothing -> r `seq` return r                                
                   else error "evaluateMChord: teams don't match"
 
       tms <- getCurDirectoryContents dir 

@@ -18,6 +18,7 @@ module ACE.Evaluation.Func (
       overlapEval
     , overlapRatio
     , overlapRatioCol
+    , overlapDur
     , teamOverlapRatios
     , weightOverlapRatio
     , reportAvgWOR
@@ -73,6 +74,9 @@ overlapRatio :: [Timed EqIgnore] -> Double
 overlapRatio es = let dur = durations es
                   in equals dur / noIgnoreDur dur
 
+overlapDur :: [Timed EqIgnore] -> Double 
+overlapDur es = let (EqIDur e ne i) = durations es in e + ne + i
+                  
 -- | Calculates and averages the Chord Sequence Recall for a list of evaluation
 -- results 
 overlapRatioCol :: [[Timed EqIgnore]] -> Double
