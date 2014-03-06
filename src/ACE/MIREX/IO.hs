@@ -100,7 +100,7 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
                   then let r    = evaluate ef mc
                            sf p = show . p $ r
                        in case mpp of
-                           Just l  -> do putStrLn . intercalate ", " $ (fp : map sf l)
+                           Just l  -> do putStrLn . intercalate "," $ (fp : map sf l)
                                          return r
                            Nothing -> r `seq` return r                                
                   else error "evaluateMChord: teams don't match"

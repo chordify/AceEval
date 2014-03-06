@@ -72,7 +72,7 @@ sumDur = foldr step (EqIDur 0 0 0) where
 -- the groundtruth chord annotation and the predicted annotation
 overlapRatio :: [Timed EqIgnore] -> Double
 overlapRatio es = let dur = durations es
-                  in equals dur / noIgnoreDur dur
+                  in 100 * (equals dur / noIgnoreDur dur)
 
 overlapDur :: [Timed EqIgnore] -> Double 
 overlapDur es = let (EqIDur e ne i) = durations es in e + ne + i
