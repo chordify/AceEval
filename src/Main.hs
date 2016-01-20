@@ -11,7 +11,6 @@ import System.FilePath            ( (</>) )
 import System.Directory           ( doesDirectoryExist )
 import System.IO                  ( stderr, Handle, openFile )
 
-
 data MirexArgs = MirexDir | MirexFilepath | MirexYear | Print | Team | ID
                | Collection | GroundTruthDir | VocabularyMapping | FileFormat
                | ErrorStream
@@ -163,23 +162,25 @@ pEvalFuncFile arg =
               
 pEvalFuncDir :: Args MirexArgs 
              -> Maybe Handle -> Maybe Team -> FilePath -> IO ()
-pEvalFuncDir arg = let -- a function that we'll use for *not* aggregating results for all teams
-                       r      = const . return $ () 
-                       -- custom team printing functions
-                       tpf t  = "Team: " ++ show t ++ "\n"
-                       tcsv t = show t ++ ","
-                       stdPp  = pVerb arg [overlapRatio, overlapDur]
-                   in case getRequiredArg arg VocabularyMapping of
-  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) stdPp
-  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) stdPp
-  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR r (Just tpf) stdPp
-  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (Just tpf) stdPp
-  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (Just tpf) stdPp
-  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) csvMIREX13 r (Just tcsv) (pVerb arg [overlapRatioCCEval])
+pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating results for all teams
+                              r      = const . return $ () 
+                              -- custom team printing functions
+                              tpf t  = "Team: " ++ show t ++ "\n"
+                              tcsv t = show t ++ ","
+                              stdPp  = pVerb arg [overlapRatio, overlapDur]
+                              in case getRequiredArg arg VocabularyMapping of
+  "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) stdPp h t fp
+  "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) stdPp h t fp
+  "root"      -> evaluateMirex (overlapEval rootOnlyEq) reportAvgWOR r (Just tpf) stdPp h t fp
+  "bass"      -> evaluateMirex (overlapEval bassOnlyEq) reportAvgWOR r (Just tpf) stdPp h t fp
+  "triad"     -> evaluateMirex (overlapEval triadEq) reportAvgWOR r (Just tpf) stdPp h t fp
+  "mirex2013" -> evaluateMirex (overlapEval chordClassEq) csvMIREX13 r (Just tcsv) (pVerb arg [overlapRatioCCEval]) h t fp
   "mx13majmin"-> evaluateMirex (overlapEval chordClassEq) (return . teamOverlapRatios eMajMin) 
-                   csvPerSongForAllTeams (Just tcsv) (pVerb arg [overlapRatioCCEval])
-  "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id])
-  "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id])
+                   csvPerSongForAllTeams (Just tcsv) (pVerb arg [overlapRatioCCEval]) h t fp
+  "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
+  "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
+  -- return toMChordsEH for all teams, then to fusion
+  "fusion"    -> fusionMirex (reportFusion) (r) (Just tpf) t fp
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format

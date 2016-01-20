@@ -23,7 +23,8 @@ library
   
   hs-source-dirs:      src  
   
-  exposed-modules:     ACE.Evaluation
+  exposed-modules:     Main
+                       ACE.Evaluation
                        ACE.Evaluation.ChordClass
                        ACE.Evaluation.ChordEq
                        ACE.Evaluation.EqIgnore

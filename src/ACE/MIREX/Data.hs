@@ -61,7 +61,7 @@ fromFileName fp = case reverse . splitDirectories $ fp of
 -- Parses: chordmrx09000008.js, chords1234.js, audio1234.lab, 3456.lab
 getId :: String -> Int
 -- getId s = read . dropWhile (not . isDigit) . dropExtension $ s
-getId s = read . reverse . take 4 . reverse . dropExtension $ s
+getId s = read . reverse . take 4 . reverse . dropExtension . dropExtension $ s
 
 toCollection :: String -> (Maybe Collection, String)
 toCollection s = case map toLower s of
@@ -85,6 +85,7 @@ toFormat :: String -> (Maybe Format, String)
 toFormat s = case s of
               ".js"  -> (Just JS , [])
               ".lab" -> (Just LAB, [])
+              ".txt" -> (Just LAB, [])
               _      -> (Nothing , "unrecognised extension: " ++ s )
 
 errorise :: (Maybe a, String) -> a

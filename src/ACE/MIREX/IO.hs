@@ -1,10 +1,11 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ACE.MIREX.IO  ( evaluateMChords
-                     , evaluateMChordsVerb
-                     , evaluateMirex
-                     ) where
+module ACE.MIREX.IO  where
+--( evaluateMChords
+--                     , evaluateMChordsVerb
+--                     , evaluateMirex
+--                     ) where
 
 import ACE.Parsers.ChordJSON
 import ACE.Parsers.ChordLab
@@ -23,6 +24,15 @@ import System.Directory      ( getDirectoryContents )
 import System.FilePath       ( (</>) )
 import System.IO             ( hPutStrLn, Handle )
 import Control.Concurrent.ParallelIO.Global ( parallel )
+
+import ACE.Parsers.ChordLab
+import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
+import HarmTrace.Base.Chord.PitchClass
+import HarmTrace.Base.Time
+import HarmTrace.Base.Chord    ( ChordLabel )
+import Data.Function (on)
+import Data.List (groupBy, sort, sortBy, nub)
+import Data.Ord (comparing)
 
 --------------------------------------------------------------------------------
 -- MIREX data IO
@@ -114,6 +124,99 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
       ar <- mapM doTeam tms' -- all results 
       atf $! ar
 
+-- | fusionMirex... 
+fusionMirex :: (Show b) => ([MChords] -> IO b)
+                 -- at: ^ a function that aggregates the results of multiple songs
+              -> ([b] -> IO ())   
+                 -- atf: ^ a function that aggregates the results of multiple teams
+                 -- This should be fusion?
+              -> Maybe (Team -> String)
+                 -- mtp: ^ a function that specifies how the team name should be
+                 -- printed             
+              -> Maybe Team 
+                 -- mteam: ^ evaluates a specific team only, if set
+              -> FilePath -> IO ()
+fusionMirex af atf mtp mteam dir =
+   do let -- | Evaluates the submission of a single team
+          -- doTeam :: Show c => Team -> IO c
+          doTeam tm = 
+            do when (isJust mtp) . putStr . (fromJust mtp) $ tm
+               tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
+               --af $! tr
+               return (tr)
+
+          -- | returns the files for one team
+          getTeamFiles :: Team -> IO [(Team, FilePath, FilePath)]
+          getTeamFiles tm = getCurDirectoryContents (dir </> tm)
+                        >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
+
+          -- Evaluates a single file
+          -- evaluateMChord :: (Team, FilePath) -> IO a
+          evaluateMChord (tm, dir, fp) = 
+            do mc <- toMChordsEH (dir </> fp) 
+               if tm == team mc
+                  then return mc                                
+                  else error "evaluateMChord: teams don't match"
+
+      tms <- getCurDirectoryContents dir 
+      -- if mteam is set, we only only evaluate one team, 
+      -- and otherwise we only ignore the "Ground-Truth" directory
+      let tms' = case mteam of
+                   Just t  -> filter (t ==) tms
+                   Nothing -> filter ("Ground-truth" /=) tms
+      ar <- mapM doTeam tms' -- all results 
+      -- group by songIDs
+      let gar = groupByIDs . concat $ ar
+      -- align per songID
+      -- let ach = alignMChords (gar!!0)
+      -- mergeTimed . sortBy (comparing getTimeStamps)
+      -- get the smallest duration
+      --let sdur = smallestDuration . concat . (map chords) $ (gar!!0)
+      let starttimes = nub . (map onBeatTime) . concat . (map chords) $ (gar!!0)
+      -- cut all the timestamps up into smallest duration
+      -- map splitTimed?
+      putStrLn . show $ starttimes
+
+-- align a [MChords]
+--alignMChords :: [MChords] -> [MChords]
+alignMChords mcs = getTimed mcs where
+  -- return unique timestamps of all MChords
+  getTimed :: [MChords] -> [[BeatTime]]
+  getTimed = nub . (map getTimeStamps) . concat . (map chords)
+
+smallestDuration :: [Timed ChordLabel] -> Double
+smallestDuration = (!!0) . sort . map duration
+
+groupByIDs :: [MChords] -> [[MChords]]
+groupByIDs = groupBy ((==) `on` songID) . sortBy (comparing songID)
+
+allIDS :: [MChords] -> [Int]
+allIDS mc = map songID mc
+
+-- return MChords from filepath
+toMChords :: FilePath -> IO (MChords)
+toMChords fp = do
+  fc <- readFile fp
+  let (b,y,c,tm,i,f) = fromFileName fp
+      pGT :: Parser MChords
+      pGT = pGroundTruth (parseChords (pLabMChords tm i y c) fc)
+      mc = parseChords pGT fc
+  return (mc)
+
+-- return MChords from filepath, ignore pitch spelling
+toMChordsEH :: FilePath -> IO (MChords)
+toMChordsEH fp = do
+  MChords c y t s ch g <- toMChords fp
+  let newch = ignorePSTimed ch
+  let ehmc = MChords c y t s newch g
+  return (ehmc)
+
+-- ignore the pitch spelling of [Timed ChordLabel] 
+ignorePSTimed :: [Timed ChordLabel] -> [Timed ChordLabel] 
+ignorePSTimed l = map ignoreTimedPitchSpelling l where
+  ignoreTimedPitchSpelling :: Timed ChordLabel -> Timed ChordLabel
+  ignoreTimedPitchSpelling (Timed c t) = Timed (ignorePitchSpelling c) t
+
 -- | Reads a MIREX file and returns an 'MChords'
 readMChords :: Maybe Handle -> FilePath -> IO MChords
 readMChords mh fp = 
@@ -155,5 +258,5 @@ printPPLog mh pp f a = do  let (r, logs) = f a
 -- | Like 'getCurDirectoryContents', but filters the results for "." and ".."
 getCurDirectoryContents :: FilePath -> IO [FilePath]
 getCurDirectoryContents fp = 
-  getDirectoryContents fp >>= return . filter (\x -> x /= "." && x /= "..") 
+  getDirectoryContents fp >>= return . filter (\x -> x /= "." && x /= ".." && x/= ".DS_Store") 
 

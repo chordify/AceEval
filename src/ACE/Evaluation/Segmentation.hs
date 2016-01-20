@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor        #-}
 module ACE.Evaluation.Segmentation ( SegEval (..)
                                    , reportSegment
+                                   , reportFusion
                                    , segmentEval
                                    , hamDistOverSeg
                                    , hamDistOverSegVerb
@@ -20,6 +21,7 @@ import HarmTrace.Base.Time
 
 import Text.Printf               ( printf )
 import Data.List                 ( intercalate, genericLength )
+import ACE.MIREX.Data
 
 data SegEval a = SegEval { underSeg :: a -- under segmentation score 1- d(gt,test)
                          , overSeg  :: a -- over  segmentation score 1- d(test,gt)
@@ -37,6 +39,11 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
 
 -- teamSegmentation :: (SegEval Double -> Double) -> [SegEval Double] -> Double
 -- teamSegmentation f = average . map f 
+
+reportFusion :: [MChords] -> IO () 
+reportFusion mc = 
+  do putStrLn  "================================================"
+     putStrLn ("length          : " ++ (show $ mc) ) 
   
 reportSegment :: [SegEval Double] -> IO () 
 reportSegment se = 
