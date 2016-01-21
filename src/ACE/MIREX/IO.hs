@@ -1,11 +1,12 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ACE.MIREX.IO  ( evaluateMChords
-                     , evaluateMChordsVerb
-                     , evaluateMirex
-                     , fusionMirex
-                     ) where
+module ACE.MIREX.IO  where
+-- ( evaluateMChords
+--                     , evaluateMChordsVerb
+--                     , evaluateMirex
+--                     , fusionMirex
+--                     ) where
 
 import ACE.Parsers.ChordJSON
 import ACE.Parsers.ChordLab
@@ -13,9 +14,11 @@ import ACE.MIREX.Data
 import ACE.MIREX.PreProcessing
 import ACE.Evaluation
 
-import HarmTrace.Base.Time   ( Timed (..) )
+import HarmTrace.Base.Time  
+ -- ( Timed (..) )
 import HarmTrace.Base.Chord  ( ChordLabel )
-import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
+import HarmTrace.Base.Parse  
+--( parseDataWithErrors, Parser, parseBillboardSafe )
 
 import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
@@ -28,11 +31,11 @@ import Control.Concurrent.ParallelIO.Global ( parallel )
 import ACE.Parsers.ChordLab
 import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
 import HarmTrace.Base.Chord.PitchClass
-import HarmTrace.Base.Time
-import HarmTrace.Base.Chord    ( ChordLabel )
 import Data.Function (on)
 import Data.List (groupBy, sort, sortBy, nub)
 import Data.Ord (comparing)
+
+import Fusion.Calc (listHandle)
 
 --------------------------------------------------------------------------------
 -- MIREX data IO
@@ -165,24 +168,55 @@ fusionMirex af atf mtp mteam dir =
                    Just t  -> filter (t ==) tms
                    Nothing -> filter ("Ground-truth" /=) tms
       ar <- mapM doTeam tms' -- all results 
-      -- group by songIDs
+      -- group from all teams by songID
       let gar = groupByIDs . concat $ ar
-      -- align per songID
-      -- let ach = alignMChords (gar!!0)
-      -- mergeTimed . sortBy (comparing getTimeStamps)
-      -- get the smallest duration
-      --let sdur = smallestDuration . concat . (map chords) $ (gar!!0)
-      let starttimes = nub . (map onBeatTime) . concat . (map chords) $ (gar!!0)
-      -- cut all the timestamps up into smallest duration
-      -- map splitTimed?
-      putStrLn . show $ starttimes
+      -- align per songID, i.e. sample every n seconds, and fuse
+      fusedAll <- mapM (fuseMChords 5 (0.1)) gar
+      -- now write them all to files 
+      
+      putStrLn . show . head $ fusedAll
 
--- align a [MChords]
---alignMChords :: [MChords] -> [MChords]
-alignMChords mcs = getTimed mcs where
-  -- return unique timestamps of all MChords
-  getTimed :: [MChords] -> [[BeatTime]]
-  getTimed = nub . (map getTimeStamps) . concat . (map chords)
+-- Int is fusioniterations, NumData is sample frequency
+fuseMChords :: Int -> NumData -> [MChords] -> IO [Timed ChordLabel]
+fuseMChords n spl mc = do 
+  -- sample the MChords
+  let sMChords = (sampleMChords spl) $ mc
+  -- get the chords as strings (should just work on ChordLabels later)
+  let srcs = (map.map) show $ sMChords
+  fused <- listHandle n srcs "testfuse"
+  let fusedH = map (parseData pChord) fused
+  -- reattach the timestamps 
+  let fusedHT = attachTime spl fusedH
+  return (fusedHT)
+
+attachTime :: NumData -> [a] -> [Timed a]
+attachTime spl l = zipWith3 timed l [0.0, spl ..] [spl, (spl+spl) ..]
+
+-- | Given a [MChords], sample the chord labels at every [10 ms]
+sampleMChords :: NumData -> [MChords] -> [[ChordLabel]]
+sampleMChords spl mc = map ((sampleWithLength spl longest) . chords) mc where
+  sampledlist = map (sampleWith spl . chords) $ mc 
+  longest = maximum . (map length) $ sampledlist
+
+-- This should start at 0.00 and always end at the longest in the list
+-- | Given a chord annotation sample the chord label at every 10 ms
+-- like sample, but takes a sample rate (seconds :: Float) as argument
+sampleWith :: NumData -> [Timed a] -> [a]
+sampleWith rate = sampleAt [0.00, rate .. ] 
+
+sampleWithLength :: NumData -> Int -> [Timed a] -> [a]
+sampleWithLength rate n l = newhead++newtail where
+  newhead = sampleAt [0.00, rate .. ] l
+  lastC   = head . reverse $ newhead
+  newtail = take (n-(length newhead)) (repeat lastC)
+        
+-- samples at specific points in time, specified in a list
+sampleAt :: [NumData] -> [Timed a] -> [a]
+sampleAt  _  [] = [] -- below, will never occur
+sampleAt []  _  = error "Harmtrace.Audio.Evaluation: No sampling grid specified" 
+sampleAt (t:ts) (c:cs)
+  | t <= offset c = getData c : sampleAt ts (c:cs)
+  | otherwise     = sampleAt (t:ts) cs   
 
 smallestDuration :: [Timed ChordLabel] -> Double
 smallestDuration = (!!0) . sort . map duration
@@ -260,3 +294,52 @@ getCurDirectoryContents :: FilePath -> IO [FilePath]
 getCurDirectoryContents fp = 
   getDirectoryContents fp >>= return . filter (\x -> x /= "." && x /= ".." && x/= ".DS_Store") 
 
+--------------------------------------------------------------------------------
+-- Parse Strings to HarmTrace data. This should be removed later
+--------------------------------------------------------------------------------
+
+
+-- | Parses a Chordify chord annotation
+parseBillboard :: String -> ([(NumData, NumData, ChordLabel)], [Error LineColPos])
+parseBillboard = parseDataWithErrors parseAnnotationData
+
+parseBillboardSafe :: String -> [(NumData, NumData, ChordLabel)]
+parseBillboardSafe = parseDataSafe parseAnnotationData
+
+-- | Parses a chord annotation.
+parseAnnotationData :: Parser [(NumData, NumData, ChordLabel)]
+parseAnnotationData =  pListSep_ng pLineEnd pChordSegment
+                    <* (pLineEnd `opt` "\n")
+
+-- | Parses the onset, offset and chordlabel on one line
+pChordSegment :: Parser (NumData, NumData, ChordLabel)
+pChordSegment = timedData' <$> pNumData <* (pSym '\t' <|> pSym ' ' <|>  (pSym ' ' <* pSym '\t') <|>  (pSym '\t' <* pSym ' '))
+                           <*> pNumData <* (pSym '\t' <|> pSym ' ' <|>  (pSym ' ' <* pSym '\t') <|>  (pSym '\t' <* pSym ' '))
+                           <*> pChord   where
+
+  -- | convenient constructor for a 'Timed'
+  timedData' :: NumData -> NumData -> ChordLabel -> (NumData, NumData, ChordLabel)
+  timedData' on off c = (on, off, c)
+
+  -- TODO : it would not hurt to move the functions below to HarmTrace-Base
+-- because they are very general                           
+-- | Parses a 'Beat'.
+pBeat :: Parser Beat
+pBeat =   One   <$ pSym '1'
+      <|> Two   <$ pSym '2'
+      <|> Three <$ pSym '3'
+      <|> Four  <$ pSym '4'
+      <?> "Beat"
+-- pBeat = toBeat <$> pDigit where
+
+  -- toBeat :: Char -> Beat
+  -- toBeat '1' = One
+  -- toBeat '2' = Two
+  -- toBeat '3' = Three
+  -- toBeat '4' = Four
+  -- toBeat _   = NoBeat
+  -- -- toBeat b   = error ("ChordSeqParser: unknown beat " ++ show b)
+                           
+-- Parses a time stamp
+pNumData :: Parser NumData
+pNumData = pDoubleRaw

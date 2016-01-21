@@ -179,7 +179,6 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg [overlapRatioCCEval]) h t fp
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
-  -- return toMChordsEH for all teams, then to fusion
   "fusion"    -> fusionMirex (reportFusion) (r) (Just tpf) t fp
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
