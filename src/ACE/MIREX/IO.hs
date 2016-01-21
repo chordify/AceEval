@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ACE.MIREX.IO  where
---( evaluateMChords
---                     , evaluateMChordsVerb
---                     , evaluateMirex
---                     ) where
+module ACE.MIREX.IO  ( evaluateMChords
+                     , evaluateMChordsVerb
+                     , evaluateMirex
+                     , fusionMirex
+                     ) where
 
 import ACE.Parsers.ChordJSON
 import ACE.Parsers.ChordLab
