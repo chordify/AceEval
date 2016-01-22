@@ -38,7 +38,7 @@ import Data.Function (on)
 import Data.List (groupBy, sort, sortBy, nub)
 import Data.Ord (comparing)
 
-import Fusion.Calc (listHandle)
+import Fusion.Calc (listHandle, listHandleGeneric)
 
 --------------------------------------------------------------------------------
 -- MIREX data IO
@@ -226,12 +226,9 @@ plotFusion af atf mtp mteam dir =
       --let garPP = map (map $ fst . preProcess) . groupByIDs . concat $ ar
       let garS = map (sampleMChordsM 0.1) gar
       -- align per songID, i.e. sample every n seconds, and fuse
-      --let sampled = map (sampletoChordClass 0.1) garPP
-      --fusedAllR <- mapM (fuseMChords 5 (0.1) toCCRoots fromStringRootPCs) gar
-      --fusedAllMM <- mapM (fuseMChords 5 (0.1) toCCMajMins toChordClasses) gar
-      fusedAllR <- mapM (fuseMChordsM 5 (0.1) ((map rootPC) . dropTimed . chords) sintPCtoChordLabel) gar 
+      fusedAllR <- mapM (fuseMChordsM 5 (0.1) ((map rootPCwithN) . dropTimed . chords) intPCtoChordLabel) gar 
       -- now write them all to files 
-      putStrLn . show . chords . head $ fusedAllR
+      putStrLn . show $ "a"
       return ()
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
@@ -239,14 +236,12 @@ sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
 
 -- Int is fusioniterations, NumData is sample frequency, 
 -- cfront is a conversion function (e.g. to roots) to fuse a chord class
-fuseMChordsM :: (Show a) => Int -> NumData -> (MChords -> [a]) -> (String -> ChordLabel) -> [MChords] -> IO (MChords)
+fuseMChordsM :: (Show a, Ord a) => Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
 fuseMChordsM n spl cfront cback mc = do 
   -- convert from ChordClass with cfront:
   let newrep = map cfront mc
-  let srcs = (map.map) show $ newrep
-  putStrLn . show . head $ srcs
   -- fuse the converted chords
-  fusedr <- listHandle n srcs "testfuse"
+  fusedr <- listHandleGeneric n newrep "testfuse"
   -- convert back to [Chordlabel]:
   let fusedrTC = map cback fusedr
   -- reattach the timestamps 
@@ -254,7 +249,7 @@ fuseMChordsM n spl cfront cback mc = do
 
   -- make new MChords:
   let newmc = insertNewChords (mc!!0) fusedHT
-  return (newrep `seq` srcs `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
+  return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
 
 insertNewChords :: MChords -> [Timed ChordLabel] -> MChords
 insertNewChords (MChords c y t s ch g) newch = (MChords c y "FUSION" s newch g)

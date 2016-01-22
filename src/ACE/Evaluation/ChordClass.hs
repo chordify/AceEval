@@ -18,7 +18,8 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , toChordClass
                                  , fromStringRootPCs
                                  , toChordClasses
-                                 , sintPCtoChordLabel
+                                 , intPCtoChordLabel
+                                 , rootPCwithN
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -52,6 +53,15 @@ instance Show a => Show (CCEval a) where
 --toInvCL :: ChordClass -> ChordLabel
 
 testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
+
+-- same as rootPC, but NoChords become -1
+rootPCwithN :: ChordLabel -> Int
+rootPCwithN NoChord = -1
+rootPCwithN c       = rootPC c
+
+intPCtoChordLabel :: Int -> ChordLabel
+intPCtoChordLabel -1 = NoChord
+intPCtoChordLabel i  = Chord (pcToRoot i) None [] (Note Nat I1)
 
 -- make different versions of the chords for evaluation
 toCCRoots :: [ChordClass] -> [Int]
@@ -111,9 +121,6 @@ toChordClass c = let s = toIntSet c
                                m 
                                (toSevth m s) 
                                (toInv m (chordBass c))
-
-intPCtoChordLabel :: Int -> ChordLabel
-intPCtoChordLabel i = Chord (pcToRoot i) None [] (Note Nat I1)
 
 sintPCtoChordLabel :: String -> ChordLabel
 sintPCtoChordLabel i = Chord (pcToRoot s) None [] (Note Nat I1) where
