@@ -20,6 +20,7 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , toChordClasses
                                  , intPCtoChordLabel
                                  , rootPCwithN
+                                 , mchordsToInt
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -28,6 +29,8 @@ import Data.IntSet                 ( IntSet )
 import Data.List                   ( intercalate )
 import HarmTrace.Base.Parse.ChordParser
 import HarmTrace.Base.Parse.General 
+import ACE.MIREX.Data 
+import HarmTrace.Base.Time  
 
 data MajMin = MajClass | MinClass | NoMajMin deriving (Eq, Show)
 data Inv    = FstInv | SecInv | NoInv | OtherBass deriving (Eq, Show)
@@ -54,14 +57,17 @@ instance Show a => Show (CCEval a) where
 
 testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 
+mchordsToInt :: MChords -> [Int]
+mchordsToInt = (map rootPCwithN) . dropTimed . chords
+
 -- same as rootPC, but NoChords become -1
 rootPCwithN :: ChordLabel -> Int
 rootPCwithN NoChord = -1
 rootPCwithN c       = rootPC c
 
 intPCtoChordLabel :: Int -> ChordLabel
-intPCtoChordLabel -1 = NoChord
-intPCtoChordLabel i  = Chord (pcToRoot i) None [] (Note Nat I1)
+intPCtoChordLabel (-1) = NoChord
+intPCtoChordLabel   i  = Chord (pcToRoot i) None [] (Note Nat I1)
 
 -- make different versions of the chords for evaluation
 toCCRoots :: [ChordClass] -> [Int]

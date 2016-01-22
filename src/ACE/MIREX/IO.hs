@@ -175,7 +175,7 @@ fusionMirex af atf mtp mteam dir =
       let gar = groupByIDs . concat $ ar
       -- align per songID, i.e. sample every n seconds, and fuse
       fusedAllR <- mapM (fuseMChords 5 (0.1) toCCRoots fromStringRootPCs) gar
-      fusedAllMM <- mapM (fuseMChords 5 (0.1) toCCMajMins toChordClasses) gar
+      --fusedAllMM <- mapM (fuseMChords 5 (0.1) toCCMajMins toChordClasses) gar
       -- now write them all to files 
       --putStrLn . show . head $ fusedAllR
       return ()
@@ -191,7 +191,7 @@ plotFusion :: (Show b) => ([MChords] -> IO b)
                  -- printed             
               -> Maybe Team 
                  -- mteam: ^ evaluates a specific team only, if set
-              -> FilePath -> IO ()
+              -> FilePath -> IO (MChords)
 plotFusion af atf mtp mteam dir =
    do let -- | Evaluates the submission of a single team
           -- doTeam :: Show c => Team -> IO c
@@ -207,7 +207,7 @@ plotFusion af atf mtp mteam dir =
                         >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
 
           -- Evaluates a single file
-          -- evaluateMChord :: (Team, FilePath) -> IO a
+          evaluateMChord :: (Team, FilePath, FilePath) -> IO MChords
           evaluateMChord (tm, dir, fp) = 
             do mc <- readMChords Nothing (dir </> fp) 
                if tm == team mc
@@ -226,16 +226,23 @@ plotFusion af atf mtp mteam dir =
       --let garPP = map (map $ fst . preProcess) . groupByIDs . concat $ ar
       let garS = map (sampleMChordsM 0.1) gar
       -- align per songID, i.e. sample every n seconds, and fuse
-      fusedAllR <- mapM (fuseMChordsM 5 (0.1) ((map rootPCwithN) . dropTimed . chords) intPCtoChordLabel) gar 
+      fusedAllR <- mapM (fuseMChordsM 5 (0.1) mchordsToInt intPCtoChordLabel) garS 
       -- now write them all to files 
-      putStrLn . show $ "a"
-      return ()
+      --putStrLn . show . (map getData) . chords . head $ fusedAllR
+      -- now evaluate the sequence to the ground truth
+      -- can we do something like (overlapEval rootOnlyEq) ? 
+      -- ### like this maybe?
+      -- evaluate (overlapEval rootOnlyEq) mc
+      return (head fusedAllR)
+
+--plotFusion (reportFusion) (const . return $ ()) (Just tpf) Nothing "/Users/hvkoops/repos/mirexfusion/MirexFusion/algorithmic-output/2013/BillBoard2013"
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
 sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
 
 -- Int is fusioniterations, NumData is sample frequency, 
--- cfront is a conversion function (e.g. to roots) to fuse a chord class
+-- cfront is a conversion function (e.g. to roots) for fusion
+-- cback is a conversion function (e.g. to roots) to fuse a chord class
 fuseMChordsM :: (Show a, Ord a) => Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
 fuseMChordsM n spl cfront cback mc = do 
   -- convert from ChordClass with cfront:
@@ -282,7 +289,11 @@ fuseMChords n spl cfront cback mc = do
 attachTime :: NumData -> [a] -> [Timed a]
 attachTime spl l = zipWith3 timed l [0.0, spl ..] [spl, (spl+spl) ..]
 
+attachTimeUntil :: NumData -> NumData -> [a] -> [Timed a]
+attachTimeUntil spl end l = zipWith3 timed l [0.0, spl .. end] [spl, (spl+spl) .. end]
+
 -- | Given a [MChords], sample the chord labels at every [10 ms]
+--  !!!!! -> shouldnt be longest but length of ground truth
 sampleMChordsM :: NumData -> [MChords] -> [MChords]
 sampleMChordsM spl mcs = map (updateSampledMC spl longest) mcs where 
   sampledlist = map (sampleWith spl . chords) $ mcs 
@@ -303,6 +314,12 @@ sampleMChords spl mc = map ((sampleWithLength spl longest) . chords) mc where
 -- like sample, but takes a sample rate (seconds :: Float) as argument
 sampleWith :: NumData -> [Timed a] -> [a]
 sampleWith rate = sampleAt [0.00, rate .. ] 
+
+--sampleUntil :: NumData -> NumData -> [Timed a] -> [Timed a]
+--sampleUntil rate end l = attachTime rate $ (newhead++newtail) where
+--  newhead = sampleAt [0.00, rate .. ] l
+--  lastC   = head . reverse $ newhead
+--  newtail = take (n-(length newhead)) (repeat lastC)
 
 sampleWithLengthT :: NumData -> Int -> [Timed a] -> [Timed a]
 sampleWithLengthT rate n l = attachTime rate $ (newhead++newtail) where
