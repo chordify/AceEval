@@ -11,18 +11,22 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , fromRootPC
                                  , fromIntRootPC
                                  , fromStringRootPC
-                                 , testChord
+                                 , testCC
                                  , toCCRoots
                                  , toCCMajMins
                                  , fromIntRootPCs
                                  , toChordClass
                                  , fromStringRootPCs
+                                 , toChordClasses
+                                 , sintPCtoChordLabel
                                  )where
 
 import ACE.Evaluation.EqIgnore
 import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..), Sev )
 import Data.IntSet                 ( IntSet )
 import Data.List                   ( intercalate )
+import HarmTrace.Base.Parse.ChordParser
+import HarmTrace.Base.Parse.General 
 
 data MajMin = MajClass | MinClass | NoMajMin deriving (Eq, Show)
 data Inv    = FstInv | SecInv | NoInv | OtherBass deriving (Eq, Show)
@@ -47,7 +51,7 @@ instance Show a => Show (CCEval a) where
 
 --toInvCL :: ChordClass -> ChordLabel
 
-testChord = ChordClass (RootPC 0) NoMajMin NoSev NoInv
+testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 
 -- make different versions of the chords for evaluation
 toCCRoots :: [ChordClass] -> [Int]
@@ -95,8 +99,8 @@ sequenceCCEval = foldr step (CCEval [] [] [] [] []) where
   step (CCEval r m s im is) (CCEval rs ms ss ims iss) 
     = CCEval (r:rs) (m:ms) (s:ss) (im:ims) (is:iss)
 
-toChordClasses :: [ChordLabel] -> [ChordClass]
-toChordClasses = map toChordClass
+toChordClasses :: [String] -> [ChordClass]
+toChordClasses = map (toChordClass . parseData pChord)
                 
 toChordClass :: ChordLabel -> ChordClass
 toChordClass UndefChord = error "cannot create ChordClass for UndefChord"
@@ -107,6 +111,13 @@ toChordClass c = let s = toIntSet c
                                m 
                                (toSevth m s) 
                                (toInv m (chordBass c))
+
+intPCtoChordLabel :: Int -> ChordLabel
+intPCtoChordLabel i = Chord (pcToRoot i) None [] (Note Nat I1)
+
+sintPCtoChordLabel :: String -> ChordLabel
+sintPCtoChordLabel i = Chord (pcToRoot s) None [] (Note Nat I1) where
+  s = (read i :: Int)
 
 toRootPC :: ChordLabel -> RootPC
 toRootPC = RootPC . rootPC
