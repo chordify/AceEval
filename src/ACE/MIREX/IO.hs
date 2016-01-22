@@ -13,6 +13,9 @@ import ACE.Parsers.ChordLab
 import ACE.MIREX.Data
 import ACE.MIREX.PreProcessing
 import ACE.Evaluation
+import ACE.Evaluation.ChordClass
+import HarmTrace.Base.Parse.ChordParser
+import HarmTrace.Base.Parse.General 
 
 import HarmTrace.Base.Time  
  -- ( Timed (..) )
@@ -171,23 +174,33 @@ fusionMirex af atf mtp mteam dir =
       -- group from all teams by songID
       let gar = groupByIDs . concat $ ar
       -- align per songID, i.e. sample every n seconds, and fuse
-      fusedAll <- mapM (fuseMChords 5 (0.1)) gar
+      fusedAllR <- mapM (fuseMChords 5 (0.1) toCCRoots fromStringRootPCs) gar
+      --fusedAllMM <- mapM (fuseMChords 5 (0.1) toCCMajMins toChordClasses) gar
       -- now write them all to files 
       
-      putStrLn . show . head $ fusedAll
+      putStrLn . show . head $ fusedAllR
 
--- Int is fusioniterations, NumData is sample frequency
-fuseMChords :: Int -> NumData -> [MChords] -> IO [Timed ChordLabel]
-fuseMChords n spl mc = do 
+-- Int is fusioniterations, NumData is sample frequency, f is a conversion function (e.g. to roots)
+fuseMChords :: (Show a) => Int -> NumData -> ([ChordClass] -> [a]) -> ([String] -> [ChordClass]) -> [MChords] -> IO [ChordClass]
+fuseMChords n spl cfront cback mc = do 
   -- sample the MChords
-  let sMChords = (sampleMChords spl) $ mc
-  -- get the chords as strings (should just work on ChordLabels later)
-  let srcs = (map.map) show $ sMChords
-  fused <- listHandle n srcs "testfuse"
-  let fusedH = map (parseData pChord) fused
+  let sMChords = map (map toChordClass) . (sampleMChords spl) $ mc
+  -- convert from ChordClass with cfront:
+  let newrep = map cfront sMChords
+  let srcs = (map.map) show $ newrep
+  -- fuse the converted chords
+  fusedr <- listHandle n srcs "testfuse"
+  -- covert back to ChordClass with cback:
+  let fusedrCC = cback fusedr
   -- reattach the timestamps 
-  let fusedHT = attachTime spl fusedH
-  return (fusedHT)
+  -- let fusedHT = attachTime spl fusedH
+  return (fusedrCC)
+
+---- majmin:
+--let mms = map toCCMajMins sMChords
+--let srcsmm = (map.map) show $ mms
+--fusedmm <- listHandle n srcsr "testfuse"
+--let fusedmmCC = map (toChordClass . parseData pChord) fusedmm
 
 attachTime :: NumData -> [a] -> [Timed a]
 attachTime spl l = zipWith3 timed l [0.0, spl ..] [spl, (spl+spl) ..]

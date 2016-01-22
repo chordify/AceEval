@@ -1,10 +1,22 @@
 {-# LANGUAGE DeriveFunctor        #-}
-module ACE.Evaluation.ChordClass ( ChordClass
+module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , toChordClass
                                  , compareCC
                                  , CCEval (..)
                                  , toCCEval
                                  , sequenceCCEval
+                                 , toRootPC
+                                 , toSevth
+                                 , RootPC (..)
+                                 , fromRootPC
+                                 , fromIntRootPC
+                                 , fromStringRootPC
+                                 , testChord
+                                 , toCCRoots
+                                 , toCCMajMins
+                                 , fromIntRootPCs
+                                 , toChordClass
+                                 , fromStringRootPCs
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -27,6 +39,53 @@ data CCEval a = CCEval { eRoot      :: a  -- root
 instance Show a => Show (CCEval a) where
   show (CCEval r m s im is) = intercalate "," . map show $ [r,m,s,im,is] 
 
+-- Create different ChordLabels from a ChordClass
+--toMajMinCL :: ChordClass -> ChordLabel
+--toMajMinCL cc = 
+
+--toSevthCL :: ChordClass -> ChordLabel
+
+--toInvCL :: ChordClass -> ChordLabel
+
+testChord = ChordClass (RootPC 0) NoMajMin NoSev NoInv
+
+-- make different versions of the chords for evaluation
+toCCRoots :: [ChordClass] -> [Int]
+toCCRoots = map toCCRoot
+
+toCCRoot :: ChordClass -> Int
+toCCRoot = rts where 
+  rts (ChordClass (RootPC r) m s i) = r
+
+toCCMajMins :: [ChordClass] -> [ChordLabel]
+toCCMajMins = map toCCMajMin
+
+toCCMajMin :: ChordClass -> ChordLabel
+toCCMajMin (ChordClass (RootPC r) m s i) = chord where 
+  chord = Chord root (toShortHand m) [] (Note Nat I1)
+  root = pcToRoot r
+
+toShortHand :: MajMin -> Shorthand
+toShortHand MajClass = Maj
+toShortHand MinClass = Min
+toShortHand NoMajMin = None
+
+fromStringRootPCs :: [String] -> [ChordClass]
+fromStringRootPCs = map fromStringRootPC
+
+fromStringRootPC :: String -> ChordClass
+fromStringRootPC i = ChordClass (RootPC r) NoMajMin NoSev NoInv where
+  r = (read i :: Int )
+
+fromIntRootPCs :: [Int] -> [ChordClass]
+fromIntRootPCs = map fromIntRootPC
+
+fromIntRootPC :: Int -> ChordClass
+fromIntRootPC i = ChordClass (RootPC i) NoMajMin NoSev NoInv
+
+fromRootPC :: RootPC -> ChordClass
+fromRootPC r = ChordClass r NoMajMin NoSev NoInv
+
 toCCEval :: a -> CCEval a
 toCCEval e = CCEval e e e e e
                 
@@ -35,6 +94,9 @@ sequenceCCEval = foldr step (CCEval [] [] [] [] []) where
   step :: CCEval b -> CCEval [b] -> CCEval [b] 
   step (CCEval r m s im is) (CCEval rs ms ss ims iss) 
     = CCEval (r:rs) (m:ms) (s:ss) (im:ims) (is:iss)
+
+toChordClasses :: [ChordLabel] -> [ChordClass]
+toChordClasses = map toChordClass
                 
 toChordClass :: ChordLabel -> ChordClass
 toChordClass UndefChord = error "cannot create ChordClass for UndefChord"
