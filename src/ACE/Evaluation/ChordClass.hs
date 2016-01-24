@@ -21,6 +21,7 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , intPCtoChordLabel
                                  , rootPCwithN
                                  , mchordsToInt
+                                 , mchordsToMajMin
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -47,29 +48,31 @@ data CCEval a = CCEval { eRoot      :: a  -- root
 instance Show a => Show (CCEval a) where
   show (CCEval r m s im is) = intercalate "," . map show $ [r,m,s,im,is] 
 
--- Create different ChordLabels from a ChordClass
---toMajMinCL :: ChordClass -> ChordLabel
---toMajMinCL cc = 
-
---toSevthCL :: ChordClass -> ChordLabel
-
---toInvCL :: ChordClass -> ChordLabel
-
 testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 
+-- Conversion functions for roots only
 mchordsToInt :: MChords -> [Int]
 mchordsToInt = (map rootPCwithN) . dropTimed . chords
 
--- same as rootPC, but NoChords become -1
 rootPCwithN :: ChordLabel -> Int
-rootPCwithN NoChord = -1
-rootPCwithN c       = rootPC c
+rootPCwithN NoChord    = -1
+rootPCwithN UndefChord = -2
+rootPCwithN c          = rootPC c
 
 intPCtoChordLabel :: Int -> ChordLabel
+intPCtoChordLabel (-2) = UndefChord
 intPCtoChordLabel (-1) = NoChord
 intPCtoChordLabel   i  = Chord (pcToRoot i) None [] (Note Nat I1)
 
--- make different versions of the chords for evaluation
+-- Conversion functions for majmin
+mchordsToMajMin :: MChords -> [ChordLabel]
+mchordsToMajMin mcs = map g ((dropTimed . chords) mcs) where
+  g :: ChordLabel -> ChordLabel
+  g UndefChord = UndefChord
+  g NoChord    = NoChord
+  g cl         = h (toChordClass cl) where
+    h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm)  [] (Note Nat I1)
+
 toCCRoots :: [ChordClass] -> [Int]
 toCCRoots = map toCCRoot
 
