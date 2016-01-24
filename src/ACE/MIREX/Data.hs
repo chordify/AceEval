@@ -3,6 +3,7 @@ module ACE.MIREX.Data  ( Collection (..)
                        , Format (..)
                        , Team
                        , MChords (..)
+                       , SongID
                        -- , getFormat
                        , fromFileName
                        , toFileName
@@ -26,6 +27,7 @@ data Format     = JS | LAB deriving (Show, Eq)
 data Collection = Billboard2012 | Billboard2013 | Beatles   deriving (Show, Eq)
 data Year       = Y2010 | Y2011 | Y2012 | Y2013
 type Team       = String
+type SongID     = Int
 
 instance Show Year where
   show Y2010 = "2010"
@@ -36,7 +38,7 @@ instance Show Year where
 data MChords    = MChords { collection  :: Collection
                           , year        :: Year
                           , team        :: String
-                          , songID      :: Int
+                          , songID      :: SongID
                           , chords      :: [Timed ChordLabel]
                           , groundTruth :: Maybe [Timed ChordLabel]
                           }  

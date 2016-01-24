@@ -180,6 +180,9 @@ fusionMirex af atf mtp mteam dir =
       --putStrLn . show . head $ fusedAllR
       return ()
 
+filterMChordsID :: SongID -> [[MChords]] -> [[MChords]]
+filterMChordsID sid = filter (\mcc -> ((head . map songID)  mcc)  == sid)
+
 -- | plotFusion... 
 plotFusion :: (Show b) => ([MChords] -> IO b)
                  -- at: ^ a function that aggregates the results of multiple songs
@@ -189,10 +192,10 @@ plotFusion :: (Show b) => ([MChords] -> IO b)
               -> Maybe (Team -> String)
                  -- mtp: ^ a function that specifies how the team name should be
                  -- printed             
-              -> Maybe Team 
-                 -- mteam: ^ evaluates a specific team only, if set
-              -> FilePath -> IO (MChords)
-plotFusion af atf mtp mteam dir =
+              -> Maybe SongID 
+                 -- mteam: ^ evaluates a specific SongID only, if set
+              -> FilePath -> IO ()
+plotFusion af atf mtp msong dir =
    do let -- | Evaluates the submission of a single team
           -- doTeam :: Show c => Team -> IO c
           doTeam tm = 
@@ -215,27 +218,30 @@ plotFusion af atf mtp mteam dir =
                   else error "evaluateMChord: teams don't match"
 
       tms <- getCurDirectoryContents dir 
-      -- if mteam is set, we only only evaluate one team, 
-      -- and otherwise we only ignore the "Ground-Truth" directory
-      let tms' = case mteam of
-                   Just t  -> filter (t ==) tms
-                   Nothing -> filter ("Ground-truth" /=) tms
-      ar <- mapM doTeam tms' -- all results 
+      ar <- mapM doTeam tms -- all results 
       -- group from all teams by songID
-      let gar = groupByIDs . concat $ ar
+      let arS = groupByIDs . concat $ ar
+      -- if msong is set, we only only evaluate one team, 
+      -- and otherwise we only ignore the "Ground-Truth" directory
+      let arS' = case msong of
+                   Just s  -> filterMChordsID s arS
+                   Nothing -> arS
       --let garPP = map (map $ fst . preProcess) . groupByIDs . concat $ ar
-      let garS = map (sampleMChordsM 0.1) gar
+      let garS = map (sampleMChordsM 0.1) arS'
       -- align per songID, i.e. sample every n seconds, and fuse
       fusedAllR <- mapM (fuseMChordsM 5 (0.1) mchordsToInt intPCtoChordLabel) garS 
-      -- now write them all to files 
-      --putStrLn . show . (map getData) . chords . head $ fusedAllR
-      -- now evaluate the sequence to the ground truth
-      -- can we do something like (overlapEval rootOnlyEq) ? 
-      -- ### like this maybe?
-      -- evaluate (overlapEval rootOnlyEq) mc
-      return (head fusedAllR)
+      let mc2 = map (fst . preProcess) fusedAllR
+      let bls = map (evaluateFusion (overlapEval rootOnlyEq)) mc2
+      putStrLn . show $ bls
+      return ()
 
---plotFusion (reportFusion) (const . return $ ()) (Just tpf) Nothing "/Users/hvkoops/repos/mirexfusion/MirexFusion/algorithmic-output/2013/BillBoard2013"
+-- 
+-- plotFusion (reportFusion) (const . return $ ()) (Just tpf) (Just 1301) "/Users/hvkoops/repos/mirexfusion/MirexFusion/algorithmic-output/2013/BillBoard2013"
+-- plotFusion (reportFusion) (const . return $ ()) (Just tpf) Nothing "/Users/hvkoops/repos/mirexfusion/MirexFusion/algorithmic-output/2013/BillBoard2013"
+
+-- This should output ID TEAM1, TEAM2, ... TEAMN, FUSION accuracies per songid
+evaluateFusion :: ([Timed RefLab] -> [Timed ChordLabel] -> [Timed EqIgnore]) -> MChords -> Double
+evaluateFusion ef = overlapRatio . evaluate ef 
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
 sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
