@@ -3,7 +3,7 @@ module Main where
 
 import ACE.MIREX
 import ACE.Evaluation
-
+import ACE.Evaluation.ChordClass
 
 -- other libraries
 import System.Console.ParseArgs
@@ -179,7 +179,9 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg [overlapRatioCCEval]) h t fp
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
-  "fusion"    -> fusionMirex (reportFusion) (r) (Just tpf) t fp
+  "fusionR"   -> fusionMirex Nothing mchordsToInt    intPCtoChordLabel (overlapEval rootOnlyEq)   fp 0.1
+  "fusionMM"  -> fusionMirex Nothing mchordsToMajMin id                (overlapEval majMinEq)     fp 0.1
+  --"fusionEQ"  -> fusionMirex Nothing mchordsToMajMin id                (overlapEval chordClassEq) fp 0.1
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format
