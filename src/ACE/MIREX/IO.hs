@@ -38,7 +38,9 @@ import Data.Function (on)
 import Data.List (groupBy, sort, sortBy, nub)
 import Data.Ord (comparing)
 
-import Fusion.Calc (listHandle, listHandleGeneric)
+import Fusion.Calc (listHandle, listHandleGeneric, listHandleGenericQuiet)
+
+type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
 
 --------------------------------------------------------------------------------
 -- MIREX data IO
@@ -133,22 +135,29 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
 filterMChordsID :: SongID -> [[MChords]] -> [[MChords]]
 filterMChordsID sid = filter (\mcc -> ((head . map songID)  mcc)  == sid)
 
--- | plotFusion... 
--- plotFusion Nothing mchordsToInt intPCtoChordLabel (overlapEval rootOnlyEq) "/Users/hvkoops/repos/mirexfusion/MirexFusion/algorithmic-output/2013/BillBoard2013" 0.5
-fusionMirex :: (Ord a, Show a) => Maybe SongID 
+fusionMirex :: (Ord a, Show a) 
+              => Maybe SongID 
               -- msong: ^ evaluates a specific SongID only, if set
               -> (MChords -> [a])
               -- ^ converts an MChords to a new representation, e.g. roots
               -> (a -> ChordLabel)
               -- ^ converts new representation back to MChords
-              -> ([Timed RefLab] -> [Timed ChordLabel] -> b)
+              -> CCEvalFunction
               -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
+              -> (CCEval Double -> Double)
+              -- what to evaluate. e.g. eMajMin
               -> FilePath 
               -- ^ Path to all files
               -> NumData
               -- ^ Sampling frequency
+              -> Int
+              -- ^ number of false values for data fusion
+              -> Bool
+              -- ^ send the aligned sequences?
+              -> Bool
+              -- ^ output the details to IO?
               -> IO ()
-fusionMirex msong cfront cback feval dir s =
+fusionMirex msong cfront cback feval ev dir s nfalse plot view =
    do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
           -- | Evaluates the submission of a single team
           doTeam tm = 
@@ -168,9 +177,9 @@ fusionMirex msong cfront cback feval dir s =
                if tm == team mc
                   then return mc                                
                   else error "evaluateMChord: teams don't match"
-
       
-      tms <- getCurDirectoryContents dir 
+      tms' <- getCurDirectoryContents dir 
+      let tms = filter ("Ground-truth" /=) $ tms' 
       ar <- mapM doTeam tms -- all results 
       -- group from all teams by songID
       let arS = groupByIDs . concat $ ar
@@ -179,95 +188,63 @@ fusionMirex msong cfront cback feval dir s =
       let arS' = case msong of
                    Just s  -> filterMChordsID s arS
                    Nothing -> arS
-      let garS = map (sampleMChordsM s) arS'
-      
+     
       -- align per songID, i.e. sample every n seconds, and fuse
-      fusedAllR <- mapM (fuseMChordsM 5 s cfront cback) garS 
+      let garS = map (sampleMChordsM s) arS'
+      fusedAllR <- mapM (fuseMChordsM 5 nfalse s cfront cback) garS 
       
       let garSPP = (map.map) (fst . preProcess) garS
       let mc2 = map (fst . preProcess) fusedAllR
       
       let both = zipWith (++) garSPP $ map (:[]) mc2
-      let bls = evaluateFusionL feval both
-      mapM_ putStrLn bls
-      return ()
+      let bls = evaluateFusionL feval ev both
+      case view of
+        True  ->  mapM_ putStrLn bls
+        False ->  putStrLn "done."
+      case plot of
+        True  -> do 
+          let mx = zipWith (++) garS $ map (:[]) fusedAllR
+          mapM_ writePlotFile mx
+        False -> return ()
 
-fusionMirexT msong cfront cback feval dir s =
-   do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
-          -- | Evaluates the submission of a single team
-          doTeam tm = 
-            do putStr . mtp $ tm
-               tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
-               return (tr)
+writePlotFile :: [MChords] -> IO ()
+writePlotFile mcs = writeFile (toPlotFilename (head mcs)) (toPlotFile mcs)
 
-          -- | returns the files for one team
-          getTeamFiles :: Team -> IO [(Team, FilePath, FilePath)]
-          getTeamFiles tm = getCurDirectoryContents (dir </> tm)
-                        >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
+toPlotFilename :: MChords -> String
+toPlotFilename mc = fn where
+  fn = "fusioncsv/"++c++y++s++"_aligned.csv"
+  c = show . collection $ mc
+  y = show . year $ mc 
+  t = show . team $ mc 
+  s = show . songID $ mc 
 
-          -- Evaluates a single file
-          evaluateMChord :: (Team, FilePath, FilePath) -> IO MChords
-          evaluateMChord (tm, dir, fp) = 
-            do mc <- readMChords Nothing (dir </> fp) 
-               if tm == team mc
-                  then return mc                                
-                  else error "evaluateMChord: teams don't match"
+toPlotFile :: [MChords] -> String
+toPlotFile mcs = intercalate "\n" . map (fbracket . show . line) $ mcs where
+  line :: MChords -> [String]
+  line mc = (map show) . dropTimed . chords $ mc
+  fbracket = filter (/= '[') . filter (/= ']')
 
-      
-      tms <- getCurDirectoryContents dir 
-      ar <- mapM doTeam tms -- all results 
-      -- group from all teams by songID
-      let arS = groupByIDs . concat $ ar
-      -- if msong is set, we only only evaluate one team, 
-      -- and otherwise we only ignore the "Ground-Truth" directory
-      let arS' = case msong of
-                   Just s  -> filterMChordsID s arS
-                   Nothing -> arS
-      --let garPP = map (map $ fst . preProcess) . groupByIDs . concat $ ar
-      let garS = map (sampleMChordsM s) arS'
-      
-      -- align per songID, i.e. sample every n seconds, and fuse
-      fusedAllR <- mapM (fuseMChordsM 5 s cfront cback) garS 
-      
-      let garSPP = (map.map) (fst . preProcess) garS
-      let mc2 = map (fst . preProcess) fusedAllR
-      -- let bls = map (evaluateFusion (overlapEval rootOnlyEq)) mc2
-      
-      let both = zipWith (++) garSPP $ map (:[]) mc2
-      let bls = evaluateFusionL feval both
-      --mapM_ putStrLn bls
-      return (both)      
-
---eval majmin: 
--- plotFusion Nothing mchordsToMajMin id (overlapEval majMinEq) "/Users/hvkoops/repos/mirexfusion/MirexFusion/algorithmic-output/2013/BillBoard2013" 0.5
-
-
---evaluateRoots :: (MChords -> [Int]) -> (Int -> ChordLabel) -> ([Timed RefLab] -> [Timed ChordLabel] -> [Timed EqIgnore])
---evaluateRoots = mchordsToInt intPCtoChordLabel (overlapEval rootOnlyEq)
-
--- This should output ID TEAM1, TEAM2, ... TEAMN, FUSION accuracies per songid
---evaluateFusion :: ([Timed RefLab] -> [Timed ChordLabel] -> [Timed EqIgnore]) -> MChords -> Double
---evaluateFusion ef = overlapRatio . evaluate ef 
-
-evaluateFusionL :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> [[MChords]] -> [String]
-evaluateFusionL ef mcs = showTeams mcs : map (sIDLine ef) mcs where
+evaluateFusionL :: CCEvalFunction -> (CCEval Double -> Double) -> [[MChords]] -> [String]
+evaluateFusionL ef ev mcs = showTeams mcs : map (sIDLine ef ev) mcs where
 
   showTeams :: [[MChords]] -> String
-  showTeams mcs = "\t" ++ (concat . (map st) $ head mcs) where
+  showTeams mcs = "id\t" ++ (concat . (map st) $ head mcs) where
     st :: MChords -> String
     st mc = (show . team $ mc) ++ "\t"
 
-  sIDLine :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> [MChords] -> String
-  sIDLine ef mcs = ((showSongID $ head mcs) ++ showResults ef mcs) where
+  sIDLine :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> String
+  sIDLine ef ev mcs = ((showSongID $ head mcs) ++ showResults ef ev mcs) where
 
     showSongID :: MChords -> String
     showSongID mc = (show . songID $ mc) ++ "\t"
 
-    showResults :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> [MChords] -> String
-    showResults ef mcs = concat $ map egh mcs where
+    showResults :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> String
+    showResults ef ev mcs = concat $ map egh mcs where
       egh mc = (efv mc) ++ "\t"
       t      = show . team 
-      efv    = show . round2D . overlapRatio . evaluate ef 
+      --efv    = show . round2D . overlapRatio . evaluate ef 
+      -- in case of chordclass:
+      efv    = show . round2D . ev . overlapRatioCCEval . evaluate ef 
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
 sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
@@ -278,13 +255,13 @@ round2D d = (fromInteger $ round $ d * (10^2)) / (10.0^^2)
 -- Int is fusioniterations, NumData is sample frequency, 
 -- cfront is a conversion function (e.g. to roots) for fusion
 -- cback is a conversion function (e.g. to roots) to fuse a chord class
-fuseMChordsM :: (Show a, Ord a) => Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
-fuseMChordsM n spl cfront cback mc = do 
+fuseMChordsM :: (Show a, Ord a) => Int -> Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
+fuseMChordsM n nfalse spl cfront cback mc = do 
   -- convert from ChordClass with cfront:
   let newrep = map cfront mc
   -- fuse the converted chords
-  -- fusedr <- listHandleGenericQuiet n newrep
-  fusedr <- listHandleGeneric n newrep "testfuse"
+  fusedr <- listHandleGenericQuiet n nfalse newrep
+  -- fusedr <- listHandleGeneric n newrep "testfuse"
   -- convert back to [Chordlabel]:
   let fusedrTC = map cback fusedr
   -- reattach the timestamps 

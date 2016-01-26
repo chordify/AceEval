@@ -179,9 +179,12 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg [overlapRatioCCEval]) h t fp
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
-  "fusionR"   -> fusionMirex Nothing mchordsToInt    intPCtoChordLabel (overlapEval rootOnlyEq)   fp 0.1
-  "fusionMM"  -> fusionMirex Nothing mchordsToMajMin id                (overlapEval majMinEq)     fp 0.1
-  --"fusionEQ"  -> fusionMirex Nothing mchordsToMajMin id                (overlapEval chordClassEq) fp 0.1
+  
+  "fusionR"   -> fusionMirex Nothing mchordsToInt         intPCtoChordLabel (overlapEval chordClassEq) eRoot      fp 0.1 11 True True 
+  "fusionMM"  -> fusionMirex Nothing mchordsToMajMin      id                (overlapEval chordClassEq) eMajMin    fp 0.1 23 True True
+  "fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     fp 0.1 23 True True -- 23?
+  "fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv fp 0.1 23 True True -- 23?
+  "fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  fp 0.1 23 True True -- 23?
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format
