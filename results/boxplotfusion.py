@@ -19,6 +19,7 @@ def stars(p):
    else:
        return "-"
 
+# fname = "/Users/hvkoops/repos/aceeval/results/bb13/root/01rootint.csv"
 
 def box(fname):
 	pd01 = pd.read_csv(fname, sep='\t', header=0, dtype=np.float64)
@@ -30,15 +31,17 @@ def box(fname):
 	stds    = [np.std(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
 	means   = [np.mean(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
 
-	print labels
-	print "medians: " + str(medians)
-	print "means: " + str(means)
-	print "stds: " + str(stds)
+	sns.set_context("poster")
 	sns.set_style("whitegrid")
 	ax = sns.boxplot(data=data, palette="PuBuGn_d")
-	# ax = sns.stripplot(data=data, size=4, jitter=True, edgecolor="gray", palette="PuBuGn_d")
-	for p in np.arange(len(pvals)):
-		ax.text(p, 101, stars(pvals[p]), horizontalalignment='center', verticalalignment='center')
+	# ax = sns.stripplot(data=data, size=1, jitter=True, edgecolor="gray", palette="PuBuGn_d")
+	for p in np.arange(len(stds)):
+		if p == len(pvals):
+			txt = "med="+str(medians[p])+"\n"+"std="+str(stds[p])
+			ax.text(p, 102, txt, horizontalalignment='center', verticalalignment='center')
+		else:
+			txt = "p="+str(pvals[p])+"\n"+stars(pvals[p])+"\n"+"med="+str(medians[p])+"\n"+"std="+str(stds[p])
+			ax.text(p, 102, txt, horizontalalignment='center', verticalalignment='center')
 	sns.despine(offset=10, trim=True)
 	plt.ylim([0,100])
 	plt.yticks(np.arange(0,100,10))
