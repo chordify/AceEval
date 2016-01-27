@@ -41,6 +41,8 @@ import Data.Ord (comparing)
 import Fusion.Calc (listHandle, listHandleGeneric, listHandleGenericQuiet)
 
 type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
+type SongResults    = (SongID,[(Team,Double)])
+type Results        = [SongResults]
 
 --------------------------------------------------------------------------------
 -- MIREX data IO
@@ -179,33 +181,27 @@ fusionMirex msong cfront cback feval ev dir s nfalse plot view =
                   else error "evaluateMChord: teams don't match"
       
       tms' <- getCurDirectoryContents dir 
-      let tms = filter ("Ground-truth" /=) $ tms' 
+      let tms   = filter ("Ground-truth" /=) $ tms' 
       ar <- mapM doTeam tms -- all results 
       -- group from all teams by songID
-      let arS = groupByIDs . concat $ ar
+      let arS   = groupByIDs . concat $ ar
       -- if msong is set, we only only evaluate one team, 
       -- and otherwise we only ignore the "Ground-Truth" directory
-      let arS' = case msong of
+      let arS'  = case msong of
                    Just s  -> filterMChordsID s arS
                    Nothing -> arS
      
       -- align per songID, i.e. sample every n seconds, and fuse
-      let garS = map (sampleMChordsM s) arS'
+      let garS  = map (sampleMChordsM s) arS'
       fusedAllR <- mapM (fuseMChordsM 5 nfalse s cfront cback) garS 
       
       let garSPP = (map.map) (fst . preProcess) garS
-      let mc2 = map (fst . preProcess) fusedAllR
+      let mc2    = map (fst . preProcess) fusedAllR
       
-      let both = zipWith (++) garSPP $ map (:[]) mc2
-      let bls = evaluateFusionL feval ev both
-      case view of
-        True  ->  mapM_ putStrLn bls
-        False ->  putStrLn "done."
-      case plot of
-        True  -> do 
-          let mx = zipWith (++) garS $ map (:[]) fusedAllR
-          mapM_ writePlotFile mx
-        False -> return ()
+      let both   = zipWith (++) garSPP $ map (:[]) mc2
+      blsf <- parallel . map (evaluateFusionSong feval ev) $ both
+      writeCSV "test.csv" blsf
+      return ()
 
 writePlotFile :: [MChords] -> IO ()
 writePlotFile mcs = writeFile (toPlotFilename (head mcs)) (toPlotFile mcs)
@@ -218,33 +214,35 @@ toPlotFilename mc = fn where
   t = show . team $ mc 
   s = show . songID $ mc 
 
+writeCSV :: FilePath -> [(SongID,[(Team,Double)])] -> IO ()
+writeCSV fp rs = writeFile fp ss where
+  ss      = intercalate "\n" $ header : (map lines rs)
+  header :: String
+  header  = intercalate "\t" $ (map (show . fst)) . snd . head $ rs
+  lines :: (SongID,[(Team,Double)]) -> String
+  lines r = intercalate "\t" $ ((show.fst) r) : (map (show.snd) $ snd r)
+
 toPlotFile :: [MChords] -> String
-toPlotFile mcs = intercalate "\n" . map (fbracket . show . line) $ mcs where
+toPlotFile mcs = intercalate "\n" .  map (fbracket . show . line) $ mcs where
   line :: MChords -> [String]
   line mc = (map show) . dropTimed . chords $ mc
-  fbracket = filter (/= '[') . filter (/= ']')
 
-evaluateFusionL :: CCEvalFunction -> (CCEval Double -> Double) -> [[MChords]] -> [String]
-evaluateFusionL ef ev mcs = showTeams mcs : map (sIDLine ef ev) mcs where
+fbracket :: String -> String
+fbracket = filter (/= '[') . filter (/= ']')
 
-  showTeams :: [[MChords]] -> String
-  showTeams mcs = "id\t" ++ (concat . (map st) $ head mcs) where
-    st :: MChords -> String
-    st mc = (show . team $ mc) ++ "\t"
+--evaluateFusion :: CCEvalFunction -> (CCEval Double -> Double) -> [[MChords]] -> Results
+--evaluateFusion ef ev mcs = map (evaluateFusionSong ef ev) mcs
 
-  sIDLine :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> String
-  sIDLine ef ev mcs = ((showSongID $ head mcs) ++ showResults ef ev mcs) where
+evaluateFusionSong :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> IO (SongResults)
+evaluateFusionSong ef ev mcs = do   
+  let s = songID . head $ mcs
+      ret = (s, map (evaluateSingle ef ev) mcs) 
+  return (ret)
 
-    showSongID :: MChords -> String
-    showSongID mc = (show . songID $ mc) ++ "\t"
-
-    showResults :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> String
-    showResults ef ev mcs = concat $ map egh mcs where
-      egh mc = (efv mc) ++ "\t"
-      t      = show . team 
-      --efv    = show . round2D . overlapRatio . evaluate ef 
-      -- in case of chordclass:
-      efv    = show . round2D . ev . overlapRatioCCEval . evaluate ef 
+evaluateSingle :: CCEvalFunction -> (CCEval Double -> Double) -> MChords -> (Team,Double)
+evaluateSingle ef ev mc = (t,d) where
+  t = team mc
+  d = ev . overlapRatioCCEval . evaluate ef $ mc
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
 sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
@@ -292,12 +290,6 @@ fuseMChords n spl cfront cback mc = do
   -- reattach the timestamps 
   -- let fusedHT = attachTime spl fusedH
   return (fusedrCC)
-
----- majmin:
---let mms = map toCCMajMins sMChords
---let srcsmm = (map.map) show $ mms
---fusedmm <- listHandle n srcsr "testfuse"
---let fusedmmCC = map (toChordClass . parseData pChord) fusedmm
 
 attachTime :: NumData -> [a] -> [Timed a]
 attachTime spl l = zipWith3 timed l [0.0, spl ..] [spl, (spl+spl) ..]

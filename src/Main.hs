@@ -180,11 +180,11 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
   
-  "fusionR"   -> fusionMirex Nothing mchordsToInt         intPCtoChordLabel (overlapEval chordClassEq) eRoot      fp 0.1 11 True True 
-  "fusionMM"  -> fusionMirex Nothing mchordsToMajMin      id                (overlapEval chordClassEq) eMajMin    fp 0.1 23 True True
-  "fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     fp 0.1 23 True True -- 23?
-  "fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv fp 0.1 23 True True -- 23?
-  "fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  fp 0.1 23 True True -- 23?
+  "fusionR"   -> fusionMirex Nothing mchordsToInt         intPCtoChordLabel (overlapEval chordClassEq) eRoot      fp 0.1 11 True False 
+  "fusionMM"  -> fusionMirex Nothing mchordsToMajMin      id                (overlapEval chordClassEq) eMajMin    fp 0.1 23 True False
+  --"fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     fp 0.1 23 True True -- 23?
+  --"fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv fp 0.1 23 True True -- 23?
+  --"fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  fp 0.1 23 True True -- 23?
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format

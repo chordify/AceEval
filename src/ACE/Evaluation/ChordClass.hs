@@ -73,13 +73,13 @@ mchordsToMajMin mcs = map g ((dropTimed . chords) mcs) where
   g cl         = h (toChordClass cl) where
     h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
 
-mchordsToMajMinS :: MChords -> [ChordLabel]
-mchordsToMajMin mcs = map g ((dropTimed . chords) mcs) where
-  g :: ChordLabel -> ChordLabel
-  g UndefChord = UndefChord
-  g NoChord    = NoChord
-  g cl         = h (toChordClass cl) where
-    h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) mm [] (Note Nat I1)
+--mchordsToMajMinS :: MChords -> [ChordLabel]
+--mchordsToMajMinS mcs = map g ((dropTimed . chords) mcs) where
+--  g :: ChordLabel -> ChordLabel
+--  g UndefChord = UndefChord
+--  g NoChord    = NoChord
+--  g cl         = h (toChordClass cl) where
+--    h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
 
 mchordsToChordLabel :: MChords -> [ChordLabel]
 mchordsToChordLabel mcs = map g ((dropTimed . chords) mcs) where
