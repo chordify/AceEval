@@ -223,7 +223,7 @@ writeCSV fp rs = writeFile fp ss where
   lines r = intercalate "\t" $ ((show.fst) r) : (map (show.snd) $ snd r)
 
 toPlotFile :: [MChords] -> String
-toPlotFile mcs = intercalate "\n" .  map (fbracket . show . line) $ mcs where
+toPlotFile mcs = intercalate "\n" .  ("no\t" ++ map (fbracket . show . line) $ mcs) where
   line :: MChords -> [String]
   line mc = (map show) . dropTimed . chords $ mc
 
@@ -235,14 +235,17 @@ fbracket = filter (/= '[') . filter (/= ']')
 
 evaluateFusionSong :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> IO (SongResults)
 evaluateFusionSong ef ev mcs = do   
-  let s = songID . head $ mcs
-      ret = (s, map (evaluateSingle ef ev) mcs) 
+  let s   = songID . head $ mcs
+  l <- mapM (evaluateSingle ef ev) mcs
+  let ret = (s, l) 
+  putStrLn . show $ (show s ++ show l)
   return (ret)
 
-evaluateSingle :: CCEvalFunction -> (CCEval Double -> Double) -> MChords -> (Team,Double)
-evaluateSingle ef ev mc = (t,d) where
-  t = team mc
-  d = ev . overlapRatioCCEval . evaluate ef $ mc
+evaluateSingle :: CCEvalFunction -> (CCEval Double -> Double) -> MChords -> IO (Team,Double)
+evaluateSingle ef ev mc = do
+  let t = team mc
+      d = ev . overlapRatioCCEval . evaluate ef $! mc
+  return (d `seq` (t,d))
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
 sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
@@ -252,7 +255,7 @@ round2D d = (fromInteger $ round $ d * (10^2)) / (10.0^^2)
 
 -- Int is fusioniterations, NumData is sample frequency, 
 -- cfront is a conversion function (e.g. to roots) for fusion
--- cback is a conversion function (e.g. to roots) to fuse a chord class
+-- cback is a conversion function (e.g. to roots) back to a chord class type
 fuseMChordsM :: (Show a, Ord a) => Int -> Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
 fuseMChordsM n nfalse spl cfront cback mc = do 
   -- convert from ChordClass with cfront:
