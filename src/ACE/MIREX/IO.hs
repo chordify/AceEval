@@ -16,6 +16,7 @@ import ACE.Evaluation
 import ACE.Evaluation.ChordClass
 import HarmTrace.Base.Parse.ChordParser
 import HarmTrace.Base.Parse.General 
+import HarmTrace.Base.Chord 
 
 import HarmTrace.Base.Time  
  -- ( Timed (..) )
@@ -35,7 +36,7 @@ import ACE.Parsers.ChordLab
 --import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
 import HarmTrace.Base.Chord.PitchClass
 import Data.Function (on)
-import Data.List (groupBy, sort, sortBy, nub)
+import Data.List (groupBy, sort, sortBy, nub, transpose)
 import Data.Ord (comparing)
 
 import Fusion.Calc (listHandle, listHandleGeneric, listHandleGenericQuiet)
@@ -203,6 +204,110 @@ fusionMirex msong cfront cback feval ev dir s nfalse plot view =
       writeCSV "test.csv" blsf
       return ()
 
+fbase ::      Maybe SongID 
+              -- msong: ^ evaluates a specific SongID only, if set
+              -> (CCEval Double -> Double)
+              -- what to evaluate. e.g. eMajMin
+              -> CCEvalFunction
+              -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
+              -> (RefLab -> ChordLabel -> EqIgnore)
+              -- what to evaluate. e.g. eMajMin
+              -> FilePath 
+              -- ^ Path to all files
+              -> NumData
+              -- ^ Sampling frequency
+              -> Int
+              -- ^ number of false values for data fusion
+              -> Bool
+              -- ^ send the aligned sequences?
+              -> Bool
+              -- ^ output the details to IO?
+              -> IO ()
+fbase msong tod feval ev dir s nfalse plot view =
+   do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
+          -- | Evaluates the submission of a single team
+          --doTeam :: Team -> IO (MChords)
+          doTeam tm = 
+            do putStr . mtp $ tm
+               tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
+               return (tr)
+
+          -- | returns the files for one team
+          getTeamFiles :: Team -> IO [(Team, FilePath, FilePath)]
+          getTeamFiles tm = getCurDirectoryContents (dir </> tm)
+                        >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
+
+          -- Evaluates a single file
+          evaluateMChord :: (Team, FilePath, FilePath) -> IO MChords
+          evaluateMChord (tm, dir, fp) = 
+            do mc <- readMChords Nothing (dir </> fp) 
+               if tm == team mc
+                  then return mc                                
+                  else error "evaluateMChord: teams don't match"
+      
+      tms' <- getCurDirectoryContents dir 
+      --let tms   = filter ("Ground-truth" /=) $ tms' 
+      ar <- mapM doTeam tms' -- all results 
+      -- group from all teams by songID
+      let arS   = groupByIDs . concat $ ar
+      -- if msong is set, we only only evaluate one song
+      let arS'  = case msong of
+                   Just s  -> filterMChordsID s arS
+                   Nothing -> arS
+     
+      -- align per songID, i.e. sample every n seconds, and fuse
+      let garS  = map (sampleMChordsM s) arS'
+      let garSPP = (map.map) (fst . preProcess) garS
+      
+      blsf <- parallel . map (fusionBaseLine tod ev feval) $ garSPP
+      putStrLn . intercalate "\n" . map show $ blsf
+      return ()
+
+-- find fusion upper bound
+fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
+fusionBaseLine tod ev ef mc = do
+  let allsame   = (length . nub . map songID $ mc) == 1
+  -- make sure all songIDs are the same
+  case allsame of 
+    True -> do
+      let tgt        = (map toRefLab) . dropTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
+          tcls       = transpose . map (dropTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
+          --blist     = zipWith elem tgt tcls
+          --blist     = zipWith (eqInList ef) tgt tcls
+          clist      = zipWith (eqList ev) tgt tcls
+          headmc     = head $ mc
+          tclist     = copyTimeStamps clist (chords headmc)
+          newMChords = MChords (collection headmc) (year headmc) (team headmc) (songID headmc) (tclist) (groundTruth headmc)
+          frac       = tod . overlapRatioCCEval . evaluate ef $ newMChords
+          --ntrue     = fromIntegral . foldl (flip ((+) . fromEnum)) 0 $ blist
+          --frac      = (/) ntrue (fromIntegral . length $ blist)
+          sid       = songID . head $ mc
+      return ((sid, frac))
+    -- there's no point in comparing different songIDs
+    False -> do 
+      putStrLn . show . map songID $ mc
+      return (0,0)
+
+copyTimeStamps :: [ChordLabel] -> [Timed ChordLabel] -> [Timed ChordLabel]
+copyTimeStamps cl tcl = zipWith replaceCL cl tcl where
+  replaceCL :: ChordLabel -> Timed ChordLabel -> Timed ChordLabel
+  replaceCL cl tcl = Timed (cl) (getTimeStamps tcl)
+
+-- rootOnlyEq
+eqInList :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> Bool
+eqInList ef r cls = elem Equal . map (ef r) $ cls
+
+-- 
+eqTimedList :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> ChordLabel
+eqTimedList ef r cls = h ef r cls where
+  h ef r cls | elem Equal . map (ef r) $ cls = refLab r
+             | otherwise                     = UndefChord
+
+eqList :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> ChordLabel
+eqList ef r cls = h ef r cls where
+  h ef r cls | elem Equal . map (ef r) $ cls = refLab r
+             | otherwise                     = UndefChord
+
 writePlotFile :: [MChords] -> IO ()
 writePlotFile mcs = writeFile (toPlotFilename (head mcs)) (toPlotFile mcs)
 
@@ -223,7 +328,7 @@ writeCSV fp rs = writeFile fp ss where
   lines r = intercalate "\t" $ ((show.fst) r) : (map (show.snd) $ snd r)
 
 toPlotFile :: [MChords] -> String
-toPlotFile mcs = intercalate "\n" .  ("no\t" ++ map (fbracket . show . line) $ mcs) where
+toPlotFile mcs = intercalate "\n" $ (["no\t"] ++ (map (fbracket . show . line) mcs)) where
   line :: MChords -> [String]
   line mc = (map show) . dropTimed . chords $ mc
 

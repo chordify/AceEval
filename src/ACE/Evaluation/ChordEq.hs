@@ -16,6 +16,7 @@
 module ACE.Evaluation.ChordEq (
     -- * Chord and key equality functions
       rootOnlyEq
+    , rootOnlyEqL
     , bassOnlyEq
     , majMinEq
     , triadEq
@@ -25,6 +26,7 @@ module ACE.Evaluation.ChordEq (
     , RefLab
     , refLab
     , makeGT
+    , toRefLab
   ) where
 
 import ACE.Evaluation.EqIgnore
@@ -43,6 +45,9 @@ import Data.IntSet               ( IntSet, size, intersection, member )
 -- it is different from the machine annotated 'ChordLabel' at the type level
 newtype RefLab = RefLab {refLab :: ChordLabel} deriving (Eq)
 
+toRefLab :: ChordLabel -> RefLab
+toRefLab a = RefLab a
+
 instance Show RefLab where
   show (RefLab c) = "Ref: " ++ show c
 
@@ -54,6 +59,15 @@ makeGT = map (fmap RefLab)
 
 rootOnlyEq :: RefLab -> ChordLabel -> EqIgnore
 rootOnlyEq gt test = chordCompare rootEq (\_ _ -> Equal) gt test -- Ignore all but root
+
+rootOnlyEqL :: RefLab -> [ChordLabel] -> EqIgnore
+rootOnlyEqL gt test = testEqual . map (eqList gt) $ test where -- Ignore all but root 
+  eqList :: RefLab -> ChordLabel -> EqIgnore
+  eqList gt cl = chordCompare rootEq (\_ _ -> Equal) gt cl 
+
+testEqual :: [EqIgnore] -> EqIgnore
+testEqual l | (elem Equal l) = Equal
+            | otherwise      = NotEq
 
 bassOnlyEq :: RefLab -> ChordLabel -> EqIgnore
 bassOnlyEq gt test = chordCompare (\_ _ -> Equal) bassEq gt test where
