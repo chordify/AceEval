@@ -264,25 +264,39 @@ fbase msong tod feval ev dir s nfalse plot view =
       return ()
 
 -- find fusion upper bound
-fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
+--fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
+--fusionBaseLine tod ev ef mc = do
+--  let allsame   = (length . nub . map songID $ mc) == 1
+--  -- make sure all songIDs are the same
+--  case allsame of 
+--    True -> do
+--      let tgt        = (map toRefLab) . dropTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
+--          tcls       = transpose . map (dropTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
+
+--          clist      = zipWith (eqList ev) tgt tcls
+--          headmc     = head $ mc
+--          tclist     = copyTimeStamps clist (chords headmc)
+--          newMChords = MChords (collection headmc) (year headmc) (team headmc) (songID headmc) (tclist) (groundTruth headmc)
+
+--          frac       = tod . overlapRatioCCEval . evaluate (overlapEval chordClassEq) $ newMChords
+--          --frac       = tod . overlapRatioCCEval . evaluate ef $ newMChords
+--          sid       = songID . head $ mc
+--      return ((sid, frac))
+--    -- there's no point in comparing different songIDs
+--    False -> do 
+--      putStrLn . show . map songID $ mc
+--      return (0,0)
+
+fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Int))
 fusionBaseLine tod ev ef mc = do
   let allsame   = (length . nub . map songID $ mc) == 1
   -- make sure all songIDs are the same
   case allsame of 
     True -> do
-      let tgt        = (map toRefLab) . dropTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
-          tcls       = transpose . map (dropTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
-          --blist     = zipWith elem tgt tcls
-          --blist     = zipWith (eqInList ef) tgt tcls
-          clist      = zipWith (eqList ev) tgt tcls
-          headmc     = head $ mc
-          tclist     = copyTimeStamps clist (chords headmc)
-          newMChords = MChords (collection headmc) (year headmc) (team headmc) (songID headmc) (tclist) (groundTruth headmc)
-          frac       = tod . overlapRatioCCEval . evaluate ef $ newMChords
-          --ntrue     = fromIntegral . foldl (flip ((+) . fromEnum)) 0 $ blist
-          --frac      = (/) ntrue (fromIntegral . length $ blist)
+      let tgt = (map toRefLab) . dropTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
+          gts = nub . map groundTruth . filter (\mc -> team mc /= "Ground-truth") $ mc
           sid       = songID . head $ mc
-      return ((sid, frac))
+      return ((sid, length gts))
     -- there's no point in comparing different songIDs
     False -> do 
       putStrLn . show . map songID $ mc
@@ -510,6 +524,11 @@ parseChords pf txt = case parseDataWithErrors pf txt of
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
 evaluate ef mc = case groundTruth mc of
   (Just gt) -> ef (makeGT gt) (chords mc)
+  _   -> error "evaluate: I did not find a ground-truth and chord prediction"
+
+evaluateL :: ([Timed RefLab] -> [[Timed ChordLabel]] -> a) -> [MChords] -> a
+evaluateL ef mc = case groundTruth . head $ mc of
+  (Just gt) -> ef (makeGT gt) (map chords mc)
   _   -> error "evaluate: I did not find a ground-truth and chord prediction"
 
 --------------------------------------------------------------------------------
