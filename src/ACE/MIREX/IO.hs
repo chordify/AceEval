@@ -204,25 +204,25 @@ fusionMirex msong cfront cback feval ev dir s nfalse plot view =
       writeCSV "test.csv" blsf
       return ()
 
-fbase ::      Maybe SongID 
-              -- msong: ^ evaluates a specific SongID only, if set
-              -> (CCEval Double -> Double)
-              -- what to evaluate. e.g. eMajMin
-              -> CCEvalFunction
-              -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
-              -> (RefLab -> ChordLabel -> EqIgnore)
-              -- what to evaluate. e.g. eMajMin
-              -> FilePath 
-              -- ^ Path to all files
-              -> NumData
-              -- ^ Sampling frequency
-              -> Int
-              -- ^ number of false values for data fusion
-              -> Bool
-              -- ^ send the aligned sequences?
-              -> Bool
-              -- ^ output the details to IO?
-              -> IO ()
+fbase ::  Maybe SongID 
+          -- msong: ^ evaluates a specific SongID only, if set
+          -> (CCEval Double -> Double)
+          -- what to evaluate. e.g. eMajMin
+          -> CCEvalFunction
+          -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
+          -> (RefLab -> ChordLabel -> EqIgnore)
+          -- what to evaluate. e.g. eMajMin
+          -> FilePath 
+          -- ^ Path to all files
+          -> NumData
+          -- ^ Sampling frequency
+          -> Int
+          -- ^ number of false values for data fusion
+          -> Bool
+          -- ^ send the aligned sequences?
+          -> Bool
+          -- ^ output the details to IO?
+          -> IO ()
 fbase msong tod feval ev dir s nfalse plot view =
    do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
           -- | Evaluates the submission of a single team

@@ -186,8 +186,8 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   --"fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv fp 0.1 23 True True -- 23?
   --"fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  fp 0.1 23 True True -- 23?
 
-  --"fusionRB"   -> fbase Nothing eRoot (overlapEval chordClassEq) rootOnlyEqL      fp 0.1 11 True False 
-
+  "fusionRB"   -> fbase Nothing eRoot (overlapEval chordClassEq) rootOnlyEq      fp 0.1 11 True False 
+--rootOnlyEq
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format
