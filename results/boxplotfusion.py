@@ -40,10 +40,10 @@ def box(fname, info=False):
 	if info:
 		for p in np.arange(len(stds)):
 			if p == len(pvals):
-				txt = "med="+str(medians[p])+"\n"+"std="+str(stds[p])
+				txt = "med="+str(round(medians[p],2))+"\n"+"std="+str(round(stds[p],3))
 				ax.text(p, 102, txt, horizontalalignment='center', verticalalignment='center')
 			else:
-				txt = "p="+str(pvals[p])+"\n"+stars(pvals[p])+"\n"+"med="+str(medians[p])+"\n"+"std="+str(stds[p])
+				txt = "p="+ '%.4E '% pvals[p] + "\n"+stars(pvals[p])+"\n"+"med="+str(round(medians[p],3))+"\n"+"std="+str(round(stds[p],3))
 				ax.text(p, 104, txt, horizontalalignment='center', verticalalignment='center')
 	sns.despine(offset=10, trim=True)
 	plt.ylim([0,100])

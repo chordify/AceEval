@@ -201,7 +201,8 @@ fusionMirex msong cfront cback feval ev dir s nfalse plot view =
       
       let both   = zipWith (++) garSPP $ map (:[]) mc2
       blsf <- parallel . map (evaluateFusionSong feval ev) $ both
-      writeCSV "test.csv" blsf
+      let coll = show . collection . head $ mc2
+      writeCSV (coll++"_MM.csv") blsf
       return ()
 
 fbase ::  Maybe SongID 
@@ -251,56 +252,61 @@ fbase msong tod feval ev dir s nfalse plot view =
       -- group from all teams by songID
       let arS   = groupByIDs . concat $ ar
       -- if msong is set, we only only evaluate one song
-      let arS'  = case msong of
+          arS'  = case msong of
                    Just s  -> filterMChordsID s arS
                    Nothing -> arS
      
       -- align per songID, i.e. sample every n seconds, and fuse
-      let garS  = map (sampleMChordsM s) arS'
-      let garSPP = (map.map) (fst . preProcess) garS
+          garS  = map (sampleMChordsM s) arS'
+          garSPP = (map.map) (fst . preProcess) garS
       
       blsf <- parallel . map (fusionBaseLine tod ev feval) $ garSPP
       putStrLn . intercalate "\n" . map show $ blsf
       return ()
 
--- find fusion upper bound
---fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
---fusionBaseLine tod ev ef mc = do
+-- find fusion upper bound by comparing MIREX evaluation
+fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
+fusionBaseLine tod ev ef mc = do
+  let allsameID   = (length . nub . map songID $ mc) == 1
+  -- make sure all songIDs are the same
+  case allsameID of 
+    True -> do
+      let tcls      = transpose . map (expandTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
+          gtmc      = head . filter (\mc -> team mc == "Ground-truth") $ mc
+          tgt       = makeGT . expandTimed . chords $ gtmc
+          newch     = zipWith (eqListTimed ev) tgt tcls
+          --clist     = copyTimeStamps newch (chords gtmc)
+          newmc     = MChords (collection gtmc) (year gtmc) (team gtmc) (songID gtmc) (newch) (Just (chords $ gtmc))
+          frac      = tod . overlapRatioCCEval . evaluate (overlapEval chordClassEq) $! newmc
+          sid       = songID newmc 
+      --putStrLn . show $ gtmc
+      --putStrLn "gtmc"
+      --putStrLn . show $ newch
+      --putStrLn "newch"
+      return ((sid, frac))
+    -- there's no point in comparing different songIDs
+    False -> do 
+      putStrLn . show . map songID $ mc
+      return (0,0)
+
+---- find fusion upper bound by comparing lists
+--fusionBaseLineB :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
+--fusionBaseLineB tod ev ef mc = do
 --  let allsame   = (length . nub . map songID $ mc) == 1
 --  -- make sure all songIDs are the same
 --  case allsame of 
 --    True -> do
---      let tgt        = (map toRefLab) . dropTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
---          tcls       = transpose . map (dropTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
-
---          clist      = zipWith (eqList ev) tgt tcls
---          headmc     = head $ mc
---          tclist     = copyTimeStamps clist (chords headmc)
---          newMChords = MChords (collection headmc) (year headmc) (team headmc) (songID headmc) (tclist) (groundTruth headmc)
-
---          frac       = tod . overlapRatioCCEval . evaluate (overlapEval chordClassEq) $ newMChords
---          --frac       = tod . overlapRatioCCEval . evaluate ef $ newMChords
+--      let tcls      = transpose . map (dropTimed . expandTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
+--          tgt       = (map toRefLab) . dropTimed . expandTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
+--          clist     = zipWith (eqList ev) tgt tcls
+--          nT        = length . filter (== True) $ clist
+--          frac      = fromIntegral nT / fromIntegral (length clist)
 --          sid       = songID . head $ mc
 --      return ((sid, frac))
 --    -- there's no point in comparing different songIDs
 --    False -> do 
 --      putStrLn . show . map songID $ mc
 --      return (0,0)
-
-fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Int))
-fusionBaseLine tod ev ef mc = do
-  let allsame   = (length . nub . map songID $ mc) == 1
-  -- make sure all songIDs are the same
-  case allsame of 
-    True -> do
-      let tgt = (map toRefLab) . dropTimed . chords . head . filter (\mc -> team mc == "Ground-truth") $ mc
-          gts = nub . map groundTruth . filter (\mc -> team mc /= "Ground-truth") $ mc
-          sid       = songID . head $ mc
-      return ((sid, length gts))
-    -- there's no point in comparing different songIDs
-    False -> do 
-      putStrLn . show . map songID $ mc
-      return (0,0)
 
 copyTimeStamps :: [ChordLabel] -> [Timed ChordLabel] -> [Timed ChordLabel]
 copyTimeStamps cl tcl = zipWith replaceCL cl tcl where
@@ -311,16 +317,23 @@ copyTimeStamps cl tcl = zipWith replaceCL cl tcl where
 eqInList :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> Bool
 eqInList ef r cls = elem Equal . map (ef r) $ cls
 
--- 
-eqTimedList :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> ChordLabel
-eqTimedList ef r cls = h ef r cls where
-  h ef r cls | elem Equal . map (ef r) $ cls = refLab r
-             | otherwise                     = UndefChord
+-- This function is so ugly it makes me puke
+eqListTimed :: (RefLab -> ChordLabel -> EqIgnore) -> (Timed RefLab) -> [Timed ChordLabel] -> (Timed ChordLabel)
+eqListTimed ef r cls = h ef r cls where
+  h ef r@(Timed rd rts) cls  | elem Equal . map (ef rd) $ (dropTimed cls) = Timed (refLab rd) rts
+                             | otherwise                                  = Timed c rts where
+                                c = snd . head . filter (\(eq, c) -> eq /= Equal) $ zip (map (ef rd) (dropTimed cls)) (dropTimed cls)
 
 eqList :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> ChordLabel
 eqList ef r cls = h ef r cls where
   h ef r cls | elem Equal . map (ef r) $ cls = refLab r
-             | otherwise                     = UndefChord
+             | otherwise                     = c where
+              c = snd . head . filter (\(eq, c) -> eq /= Equal) $ zip (map (ef r) cls) cls
+
+eqListB :: (RefLab -> ChordLabel -> EqIgnore) -> RefLab -> [ChordLabel] -> Bool
+eqListB ef r cls = h ef r cls where
+  h ef r cls | elem Equal . map (ef r) $ cls = True
+             | otherwise                     = False
 
 writePlotFile :: [MChords] -> IO ()
 writePlotFile mcs = writeFile (toPlotFilename (head mcs)) (toPlotFile mcs)
