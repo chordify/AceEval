@@ -279,10 +279,6 @@ fusionBaseLine tod ev ef mc = do
           newmc     = MChords (collection gtmc) (year gtmc) (team gtmc) (songID gtmc) (newch) (Just (chords $ gtmc))
           frac      = tod . overlapRatioCCEval . evaluate (overlapEval chordClassEq) $! newmc
           sid       = songID newmc 
-      --putStrLn . show $ gtmc
-      --putStrLn "gtmc"
-      --putStrLn . show $ newch
-      --putStrLn "newch"
       return ((sid, frac))
     -- there's no point in comparing different songIDs
     False -> do 
