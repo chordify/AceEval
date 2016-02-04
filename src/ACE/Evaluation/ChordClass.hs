@@ -22,10 +22,13 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , rootPCwithN
                                  , mchordsToInt
                                  , mchordsToMajMin
+                                 , mchordsToMajMinS
+                                 , mchordsToMajMinI
                                  )where
 
 import ACE.Evaluation.EqIgnore
-import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..), Sev )
+--import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..), Sev )
+import HarmTrace.Base.Chord hiding ( toMajMin, ClassType (..) )
 import Data.IntSet                 ( IntSet )
 import Data.List                   ( intercalate )
 import HarmTrace.Base.Parse.ChordParser
@@ -73,13 +76,45 @@ mchordsToMajMin mcs = map g ((dropTimed . chords) mcs) where
   g cl         = h (toChordClass cl) where
     h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
 
---mchordsToMajMinS :: MChords -> [ChordLabel]
---mchordsToMajMinS mcs = map g ((dropTimed . chords) mcs) where
---  g :: ChordLabel -> ChordLabel
---  g UndefChord = UndefChord
---  g NoChord    = NoChord
---  g cl         = h (toChordClass cl) where
---    h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
+mchordsToMajMinS :: MChords -> [ChordLabel]
+mchordsToMajMinS mcs = map g ((dropTimed . chords) mcs) where
+  g :: ChordLabel -> ChordLabel
+  g UndefChord = UndefChord
+  g NoChord    = NoChord
+  g cl         = h (toChordClass cl) where
+    h (ChordClass (RootPC i) mm s _) = Chord (pcToRoot i) (toMMSshorthand (mm,s)) [] (Note Nat I1)
+
+mchordsToMajMinI :: MChords -> [ChordLabel]
+mchordsToMajMinI mcs = map g ((dropTimed . chords) mcs) where
+  g :: ChordLabel -> ChordLabel
+  g UndefChord        = UndefChord
+  g NoChord           = NoChord
+  g cl                = 
+    h (toChordClass cl) where
+                          h (ChordClass (RootPC i)  mm _ NoInv)     = Chord (pcToRoot i)  (toShortHand mm)  [] (Note Nat I1)
+                          h (ChordClass (RootPC i)  mm _ FstInv)    = Chord (pcToRoot i)  (toShortHand mm)  [] (Note Nat I3)
+                          h (ChordClass (RootPC i)  mm _ SecInv)    = Chord (pcToRoot i)  (toShortHand mm)  [] (Note Nat I5)
+                          h (ChordClass (RootPC i)  mm _ OtherBass) = Chord (pcToRoot i)  (toShortHand mm)  [] (Note Nat I7)
+                            -- how to represent this?
+
+toMMSshorthand :: (MajMin, Sevth) -> Shorthand
+toMMSshorthand (mm,s) = case (mm,s) of 
+                          (MajClass, NoSev)  -> Maj
+                          (MajClass, MinSev) -> Sev
+                          (MajClass, MajSev) -> Maj7
+                          
+                          (MinClass, NoSev)  -> Min
+                          (MinClass, MinSev) -> Min7
+                          (MinClass, MajSev) -> MinMaj7
+                          (MinClass, DimSev) -> Dim7
+                          
+                          (NoMajMin, NoSev)  -> None
+                          (_, _)             -> None
+
+-- MajMin = MajClass | MinClass | NoMajMin 
+-- sevths: DimSev   | MinSev    | MajSev   | NoSev 
+-- shorthands Maj7 | Min7 | Sev | Dim7 | HDim7 | MinMaj7 | Aug7
+
 
 mchordsToChordLabel :: MChords -> [ChordLabel]
 mchordsToChordLabel mcs = map g ((dropTimed . chords) mcs) where

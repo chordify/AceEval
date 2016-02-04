@@ -39,7 +39,7 @@ import Data.Function (on)
 import Data.List (groupBy, sort, sortBy, nub, transpose)
 import Data.Ord (comparing)
 
-import Fusion.Calc (listHandle, listHandleGeneric, listHandleGenericQuiet)
+import Fusion.Calc (listHandle, listHandleGeneric, listHandleGenericQuiet, listMVGenericQuiet, listRandomGenericQuiet)
 
 type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
 type SongResults    = (SongID,[(Team,Double)])
@@ -149,6 +149,8 @@ fusionMirex :: (Ord a, Show a)
               -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
               -> (CCEval Double -> Double)
               -- what to evaluate. e.g. eMajMin
+              -> String 
+              -- ^ same but string
               -> FilePath 
               -- ^ Path to all files
               -> NumData
@@ -160,7 +162,7 @@ fusionMirex :: (Ord a, Show a)
               -> Bool
               -- ^ output the details to IO?
               -> IO ()
-fusionMirex msong cfront cback feval ev dir s nfalse plot view =
+fusionMirex msong cfront cback feval ev sev dir s nfalse plot view =
    do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
           -- | Evaluates the submission of a single team
           doTeam tm = 
@@ -195,14 +197,21 @@ fusionMirex msong cfront cback feval ev dir s nfalse plot view =
       -- align per songID, i.e. sample every n seconds, and fuse
       let garS  = map (sampleMChordsM s) arS'
       fusedAllR <- mapM (fuseMChordsM 5 nfalse s cfront cback) garS 
+      mvAllR <- mapM (mvMChordsM 5 nfalse s cfront cback) garS 
+      rAllR <- mapM (rMChordsM 5 nfalse s cfront cback) garS 
       
       let garSPP = (map.map) (fst . preProcess) garS
-      let mc2    = map (fst . preProcess) fusedAllR
+      let mcF    = map (fst . preProcess) fusedAllR
+      let mcMV   = map (fst . preProcess) mvAllR
+      let mcR    = map (fst . preProcess) rAllR
       
-      let both   = zipWith (++) garSPP $ map (:[]) mc2
-      blsf <- parallel . map (evaluateFusionSong feval ev) $ both
-      let coll = show . collection . head $ mc2
-      writeCSV (coll++"_MM.csv") blsf
+      let both   = zipWith (++) garSPP $ map (:[]) mcF
+      let both1   = zipWith (++) both $ map (:[]) mcMV
+      let both2   = zipWith (++) both1 $ map (:[]) mcR
+      
+      blsf <- parallel . map (evaluateFusionSong feval ev) $ both2
+      let coll   = show . collection . head $ mcF
+      writeCSV (coll++"_"++sev++".csv") blsf
       return ()
 
 fbase ::  Maybe SongID 
@@ -358,9 +367,6 @@ toPlotFile mcs = intercalate "\n" $ (["no\t"] ++ (map (fbracket . show . line) m
 fbracket :: String -> String
 fbracket = filter (/= '[') . filter (/= ']')
 
---evaluateFusion :: CCEvalFunction -> (CCEval Double -> Double) -> [[MChords]] -> Results
---evaluateFusion ef ev mcs = map (evaluateFusionSong ef ev) mcs
-
 evaluateFusionSong :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> IO (SongResults)
 evaluateFusionSong ef ev mcs = do   
   let s   = songID . head $ mcs
@@ -395,13 +401,49 @@ fuseMChordsM n nfalse spl cfront cback mc = do
   let fusedrTC = map cback fusedr
   -- reattach the timestamps 
   let fusedHT = attachTime spl fusedrTC
-
   -- make new MChords:
-  let newmc = insertNewChords (mc!!0) fusedHT
+  let newmc = insertNewChords (mc!!0) fusedHT "FUSION"
   return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
 
-insertNewChords :: MChords -> [Timed ChordLabel] -> MChords
-insertNewChords (MChords c y t s ch g) newch = (MChords c y "FUSION" s newch g)
+-- Int is fusioniterations, NumData is sample frequency, 
+-- cfront is a conversion function (e.g. to roots) for fusion
+-- cback is a conversion function (e.g. to roots) back to a chord class type
+mvMChordsM :: (Show a, Ord a) => Int -> Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
+mvMChordsM n nfalse spl cfront cback mc = do 
+  -- convert from ChordClass with cfront:
+  let newrep = map cfront mc
+  -- fuse the converted chords
+  fusedr <- listMVGenericQuiet n nfalse newrep
+  -- fusedr <- listHandleGeneric n newrep "testfuse"
+  -- convert back to [Chordlabel]:
+  let fusedrTC = map cback fusedr
+  -- reattach the timestamps 
+  let fusedHT = attachTime spl fusedrTC
+  -- make new MChords:
+  let newmc = insertNewChords (mc!!0) fusedHT "MVOTE"
+  return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
+
+
+-- Int is fusioniterations, NumData is sample frequency, 
+-- cfront is a conversion function (e.g. to roots) for fusion
+-- cback is a conversion function (e.g. to roots) back to a chord class type
+rMChordsM :: (Show a, Ord a) => Int -> Int -> NumData -> (MChords -> [a]) -> (a -> ChordLabel) -> [MChords] -> IO (MChords)
+rMChordsM n nfalse spl cfront cback mc = do 
+  -- convert from ChordClass with cfront:
+  let newrep = map cfront mc
+  -- fuse the converted chords
+  fusedr <- listRandomGenericQuiet n nfalse newrep
+  -- fusedr <- listHandleGeneric n newrep "testfuse"
+  -- convert back to [Chordlabel]:
+  let fusedrTC = map cback fusedr
+  -- reattach the timestamps 
+  let fusedHT = attachTime spl fusedrTC
+  -- make new MChords:
+  let newmc = insertNewChords (mc!!0) fusedHT "RANDOM"
+  return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
+
+insertNewChords :: MChords -> [Timed ChordLabel] -> String -> MChords
+insertNewChords (MChords c y t s ch g) newch name = (MChords c y name s newch g)
 
 -- Int is fusioniterations, NumData is sample frequency, 
 -- cfront is a conversion function (e.g. to roots) to fuse a chord class
