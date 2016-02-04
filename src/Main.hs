@@ -168,7 +168,7 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                               tpf t  = "Team: " ++ show t ++ "\n"
                               tcsv t = show t ++ ","
                               stdPp  = pVerb arg [overlapRatio, overlapDur]
-                              sfreq  = 1
+                              sfreq  = 0.1
                               in case getRequiredArg arg VocabularyMapping of
   "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) stdPp h t fp
   "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) stdPp h t fp

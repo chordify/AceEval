@@ -53,6 +53,10 @@ instance Show a => Show (CCEval a) where
 
 testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 
+allRootChords = [Chord (pcToRoot i) None [] (Note Nat I1) | i <- [0..11]] 
+allMMChords   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- [Maj, Min, None]]
+
+
 -- Conversion functions for roots only
 mchordsToInt :: MChords -> [Int]
 mchordsToInt = (map rootPCwithN) . dropTimed . chords
