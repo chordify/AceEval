@@ -26,6 +26,7 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , mchordsToMajMinI
                                  , allMMChords
                                  , chordLabelToInt
+                                 , chordLabelToMajMin  
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -85,6 +86,15 @@ mchordsToMajMin mcs = map g ((dropTimed . chords) mcs) where
   g NoChord    = NoChord
   g cl         = h (toChordClass cl) where
     h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
+
+chordLabelToMajMin :: [ChordLabel] -> [ChordLabel]
+chordLabelToMajMin cls = map g cls where
+  g :: ChordLabel -> ChordLabel
+  g UndefChord = UndefChord
+  g NoChord    = NoChord
+  g cl         = h (toChordClass cl) where
+    h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
+
 
 mchordsToMajMinS :: MChords -> [ChordLabel]
 mchordsToMajMinS mcs = map g ((dropTimed . chords) mcs) where

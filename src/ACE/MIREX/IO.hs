@@ -44,7 +44,7 @@ import Fusion.Calc           (listHandle, listHandleGeneric,
 type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
 type SongResults    = (SongID,[(Team,Double)])
 type Results        = [SongResults]
-type Strategy       = ([a] -> [[a]] -> IO ([a]))
+--type Strategy       = ([a] -> [[a]] -> IO ([a]))
 
 --------------------------------------------------------------------------------
 -- MIREX data IO
@@ -203,9 +203,9 @@ fusionMirex msong cfront cback feval ev sev dir s =
       let mcMV   = map (fst . preProcess) mvAllR
       let mcR    = map (fst . preProcess) rAllR
       
-      let both    = zipWith (++) garSPP $ map (:[]) mcF
+      let both    = zipWith (++) garSPP $ map (:[]) mcR
       let both1   = zipWith (++) both $ map (:[]) mcMV
-      let both2   = zipWith (++) both1 $ map (:[]) mcR
+      let both2   = zipWith (++) both1 $ map (:[]) mcF
       
       blsf <- parallel . map (evaluateFusionSong feval ev) $ both2
       let coll   = show . collection . head $ mcF
@@ -271,7 +271,7 @@ fbase msong tod feval ev dir s nfalse plot view =
       putStrLn . intercalate "\n" . map show $ blsf
       return ()
 
--- find fusion upper bound by comparing MIREX evaluation
+-- find fusion upper bound by comparing MIREX evaluations
 fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
 fusionBaseLine tod ev ef mc = do
   let allsameID   = (length . nub . map songID $ mc) == 1
@@ -372,7 +372,7 @@ combineChordsM :: (Show a, Ord a) =>
                   NumData -> 
                   ([ChordLabel] -> [a]) ->
                   (a -> ChordLabel) -> 
-                  Strategy ->
+                  ([a] -> [[a]] -> IO ([a])) ->
                   [MChords] -> 
                   IO (MChords)
 combineChordsM team spl cfront cback strategy mc = do
