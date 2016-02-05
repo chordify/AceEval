@@ -181,15 +181,15 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
   
-  "fusionR"   -> fusionMirex Nothing mchordsToInt         intPCtoChordLabel (overlapEval chordClassEq) eRoot      "ROOT"      fp sfreq 11 True False 
-  "fusionMM"  -> fusionMirex Nothing mchordsToMajMin      id                (overlapEval chordClassEq) eMajMin    "MajMin"    fp sfreq 24 True False
-  "fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     "Sevth"     fp sfreq 84 True False -- (12*3)+(12*4)+1?
-  "fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv "MajMinInv" fp sfreq 95 True False -- (12*2*4)?
-  --"fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  "SevthInv"  fp 0.1 23 True False -- 23?
+  "fusionR"   -> fusionMirex Nothing chordLabelToInt        intPCtoChordLabel (overlapEval chordClassEq) eRoot      "ROOT"      fp sfreq 
+  --"fusionMM"  -> fusionMirex Nothing mchordsToMajMin      id                (overlapEval chordClassEq) eMajMin    "MajMin"    fp sfreq 
+  --"fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     "Sevth"     fp sfreq -- (12*3)+(12*4)+1?
+  --"fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv "MajMinInv" fp sfreq -- (12*2*4)?
+  --"fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  "SevthInv"  fp sfreq -- 23?
 
   -- compute the fusion glass ceilings
-  "fusionRB"   -> fbase Nothing eRoot (overlapEval chordClassEq) rootOnlyEq      fp sfreq 11 True False 
-  "fusionMMB"   -> fbase Nothing eMajMin (overlapEval chordClassEq) rootOnlyEq   fp sfreq 11 True False 
+  "fusionRB"   -> fbase Nothing eRoot   (overlapEval chordClassEq) rootOnlyEq   fp sfreq 11 True False 
+  "fusionMMB"  -> fbase Nothing eMajMin (overlapEval chordClassEq) rootOnlyEq   fp sfreq 11 True False 
 --rootOnlyEq
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   

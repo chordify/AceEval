@@ -24,6 +24,8 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , mchordsToMajMin
                                  , mchordsToMajMinS
                                  , mchordsToMajMinI
+                                 , allMMChords
+                                 , chordLabelToInt
                                  )where
 
 import ACE.Evaluation.EqIgnore
@@ -54,12 +56,16 @@ instance Show a => Show (CCEval a) where
 testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 
 allRootChords = [Chord (pcToRoot i) None [] (Note Nat I1) | i <- [0..11]] 
-allMMChords   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- [Maj, Min, None]]
 
+allMMChords :: [ChordLabel]
+allMMChords   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- [Maj .. ]]
 
 -- Conversion functions for roots only
 mchordsToInt :: MChords -> [Int]
 mchordsToInt = (map rootPCwithN) . dropTimed . chords
+
+chordLabelToInt :: [ChordLabel] -> [Int]
+chordLabelToInt = (map rootPCwithN)
 
 rootPCwithN :: ChordLabel -> Int
 rootPCwithN NoChord    = -1
