@@ -39,7 +39,7 @@ import Data.Ord              (comparing)
 import Fusion.Calc           (listHandle, listHandleGeneric, 
                               listHandleGenericQuiet, 
                               listMVGenericQuiet, listRandomGenericQuiet,
-                              listHandleGenericQuietD)
+                              listHandleGenericQuietD, listHandleGenericVerbose)
 
 type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
 type SongResults    = (SongID,[(Team,Double)])
@@ -188,11 +188,12 @@ fusionMirex msong cfront cback feval ev sev dir s =
       let arS'  = case msong of
                    Just s  -> filterMChordsID s arS
                    Nothing -> arS
-     
       -- align per songID, i.e. sample every n seconds, and fuse
       let garS  = map (sampleMChordsM s) arS'
+    
       -- data fusion
-      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garS 
+      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuiet 5)) garS
+      --fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericVerbose 5)) garS
       -- majority vote
       mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet 5))      garS 
       -- random picking
