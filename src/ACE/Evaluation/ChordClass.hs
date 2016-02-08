@@ -58,8 +58,10 @@ testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 
 allRootChords = [Chord (pcToRoot i) None [] (Note Nat I1) | i <- [0..11]] 
 
-allMMChords :: [ChordLabel]
-allMMChords   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- [Maj, Min]]
+allMMChords' :: [ChordLabel]
+allMMChords'   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- [Maj, Min]]
+
+allMMChords = [UndefChord, NoChord] ++ allMMChords'
 
 -- Conversion functions for roots only
 mchordsToInt :: MChords -> [Int]

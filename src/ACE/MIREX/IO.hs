@@ -150,6 +150,7 @@ fusionMirex :: (Ord a, Show a)
               -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
               -> (CCEval Double -> Double)
               -- what to evaluate. e.g. eMajMin
+              -> (RefLab -> ChordLabel -> EqIgnore)
               -> String 
               -- ^ same but string
               -> FilePath 
@@ -157,7 +158,7 @@ fusionMirex :: (Ord a, Show a)
               -> NumData
               -- ^ Sampling frequency
               -> IO ()
-fusionMirex msong cfront cback feval ev sev dir s =
+fusionMirex msong cfront cback feval ev eveq sev dir s =
    do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
           -- | Evaluates the submission of a single team
           doTeam tm = 
@@ -178,11 +179,12 @@ fusionMirex msong cfront cback feval ev sev dir s =
                   then return mc                                
                   else error "evaluateMChord: teams don't match"
       
-      tms' <- getCurDirectoryContents dir 
-      let tms   = filter ("Ground-truth" /=) $ tms' 
+      -- without GT
+      tms <- getCurDirectoryContents dir 
       ar <- mapM doTeam tms -- all results 
+      let arNoGT = map (filter (\mc -> team mc /= "Ground-truth")) ar
       -- group from all teams by songID
-      let arS   = groupByIDs . concat $ ar
+      let arS   = groupByIDs . concat $ arNoGT
       -- if msong is set, we only only evaluate one team, 
       -- and otherwise we only ignore the "Ground-Truth" directory
       let arS'  = case msong of
@@ -191,9 +193,20 @@ fusionMirex msong cfront cback feval ev sev dir s =
       -- align per songID, i.e. sample every n seconds, and fuse
       let garS  = map (sampleMChordsM s) arS'
     
+      -- with GT for glass ceiling
+      let arSGT   = groupByIDs . concat $ ar
+      -- if msong is set, we only only evaluate one team, 
+      -- and otherwise we only ignore the "Ground-Truth" directory
+      let arSGT'  = case msong of
+                   Just s  -> filterMChordsID s arSGT
+                   Nothing -> arSGT
+      -- align per songID, i.e. sample every n seconds, and fuse
+      let garSGT  = map (sampleMChordsM s) arS'
+
+      -- glass ceiling 
+      ceilings <- mapM (fusionBaseLine ev eveq feval) $ garSGT
       -- data fusion
-      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuiet 5)) garS
-      --fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericVerbose 5)) garS
+      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garS
       -- majority vote
       mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet 5))      garS 
       -- random picking
@@ -203,95 +216,31 @@ fusionMirex msong cfront cback feval ev sev dir s =
       let mcF    = map (fst . preProcess) fusedAllR
       let mcMV   = map (fst . preProcess) mvAllR
       let mcR    = map (fst . preProcess) rAllR
+      let mcC    = map (fst . preProcess) ceilings
       
-      let both    = zipWith (++) garSPP $ map (:[]) mcR
-      let both1   = zipWith (++) both $ map (:[]) mcMV
-      let both2   = zipWith (++) both1 $ map (:[]) mcF
+      let both    = zipWith (++) garSPP $ map (:[]) ceilings
+      let both1   = zipWith (++) both $ map (:[]) mcR
+      let both2   = zipWith (++) both1 $ map (:[]) mcMV
+      let both3   = zipWith (++) both1 $ map (:[]) mcF
       
-      blsf <- parallel . map (evaluateFusionSong feval ev) $ both2
+      blsf <- parallel . map (evaluateFusionSong feval ev) $ both3
       let coll   = show . collection . head $ mcF
       writeCSV (coll++"_"++sev++".csv") blsf
       return ()
 
-fbase ::  Maybe SongID 
-          -- msong: ^ evaluates a specific SongID only, if set
-          -> (CCEval Double -> Double)
-          -- what to evaluate. e.g. eMajMin
-          -> CCEvalFunction
-          -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
-          -> (RefLab -> ChordLabel -> EqIgnore)
-          -- what to evaluate. e.g. eMajMin
-          -> FilePath 
-          -- ^ Path to all files
-          -> NumData
-          -- ^ Sampling frequency
-          -> Int
-          -- ^ number of false values for data fusion
-          -> Bool
-          -- ^ send the aligned sequences?
-          -> Bool
-          -- ^ output the details to IO?
-          -> IO ()
-fbase msong tod feval ev dir s nfalse plot view =
-   do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
-          -- | Evaluates the submission of a single team
-          --doTeam :: Team -> IO (MChords)
-          doTeam tm = 
-            do putStr . mtp $ tm
-               tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
-               return (tr)
-
-          -- | returns the files for one team
-          getTeamFiles :: Team -> IO [(Team, FilePath, FilePath)]
-          getTeamFiles tm = getCurDirectoryContents (dir </> tm)
-                        >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
-
-          -- Evaluates a single file
-          evaluateMChord :: (Team, FilePath, FilePath) -> IO MChords
-          evaluateMChord (tm, dir, fp) = 
-            do mc <- readMChords Nothing (dir </> fp) 
-               if tm == team mc
-                  then return mc                                
-                  else error "evaluateMChord: teams don't match"
-      
-      tms' <- getCurDirectoryContents dir 
-      --let tms   = filter ("Ground-truth" /=) $ tms' 
-      ar <- mapM doTeam tms' -- all results 
-      -- group from all teams by songID
-      let arS   = groupByIDs . concat $ ar
-      -- if msong is set, we only only evaluate one song
-          arS'  = case msong of
-                   Just s  -> filterMChordsID s arS
-                   Nothing -> arS
-     
-      -- align per songID, i.e. sample every n seconds, and fuse
-          garS  = map (sampleMChordsM s) arS'
-          garSPP = (map.map) (fst . preProcess) garS
-      
-      blsf <- parallel . map (fusionBaseLine tod ev feval) $ garSPP
-      putStrLn . intercalate "\n" . map show $ blsf
-      return ()
-
 -- find fusion upper bound by comparing MIREX evaluations
-fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO ((SongID, Double))
-fusionBaseLine tod ev ef mc = do
-  let allsameID   = (length . nub . map songID $ mc) == 1
-  -- make sure all songIDs are the same
-  case allsameID of 
-    True -> do
-      let tcls      = transpose . map (expandTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
-          gtmc      = head . filter (\mc -> team mc == "Ground-truth") $ mc
-          tgt       = makeGT . expandTimed . chords $ gtmc
-          newch     = zipWith (eqListTimed ev) tgt tcls
-          --clist     = copyTimeStamps newch (chords gtmc)
-          newmc     = MChords (collection gtmc) (year gtmc) (team gtmc) (songID gtmc) (newch) (Just (chords $ gtmc))
-          frac      = tod . overlapRatioCCEval . evaluate (overlapEval chordClassEq) $! newmc
-          sid       = songID newmc 
-      return ((sid, frac))
-    -- there's no point in comparing different songIDs
-    False -> do 
-      putStrLn . show . map songID $ mc
-      return (0,0)
+fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO (MChords)
+fusionBaseLine ev evv feval mc = do
+    let tcls      = transpose . map (expandTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
+        gtmc      = head . filter (\mc -> team mc == "Ground-truth") $ mc
+        tgt       = makeGT . expandTimed . chords $ gtmc
+        newch     = zipWith (eqListTimed evv) tgt tcls
+        --clist     = copyTimeStamps newch (chords gtmc)
+        newmc     = MChords (collection gtmc) (year gtmc) ("CELIING") (songID gtmc) (newch) (Just (chords $ gtmc))
+        frac      = ev . overlapRatioCCEval . evaluate feval $! newmc
+        sid       = songID newmc 
+    return (newmc)
+
 
 copyTimeStamps :: [ChordLabel] -> [Timed ChordLabel] -> [Timed ChordLabel]
 copyTimeStamps cl tcl = zipWith replaceCL cl tcl where

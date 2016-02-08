@@ -163,12 +163,13 @@ pEvalFuncFile arg =
 pEvalFuncDir :: Args MirexArgs 
              -> Maybe Handle -> Maybe Team -> FilePath -> IO ()
 pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating results for all teams
-                              r      = const . return $ () 
+                              r        = const . return $ () 
                               -- custom team printing functions
-                              tpf t  = "Team: " ++ show t ++ "\n"
-                              tcsv t = show t ++ ","
-                              stdPp  = pVerb arg [overlapRatio, overlapDur]
-                              sfreq  = 0.1
+                              tpf tm   = "Team: " ++ show tm ++ "\n"
+                              tcsv tm  = show tm ++ ","
+                              stdPp    = pVerb arg [overlapRatio, overlapDur]
+                              sfreq    = 0.1
+                              --fp = "/Users/hvkoops/repos/aceeval/algorithmic-output/2013/billboard2013"
                               in case getRequiredArg arg VocabularyMapping of
   "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) stdPp h t fp
   "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) stdPp h t fp
@@ -181,16 +182,12 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
   
-  "fusionR"   -> fusionMirex Nothing chordLabelToInt      intPCtoChordLabel (overlapEval chordClassEq) eRoot      "ROOT"      fp sfreq
-  "fusionMM"  -> fusionMirex Nothing chordLabelToMajMin   id                (overlapEval chordClassEq) eMajMin    "MajMin"    fp sfreq
+  "fusionR"   -> fusionMirex Nothing chordLabelToInt      intPCtoChordLabel (overlapEval chordClassEq) eRoot    rootOnlyEq  "ROOT"      fp sfreq
+  "fusionMM"  -> fusionMirex Nothing chordLabelToMajMin   id                (overlapEval chordClassEq) eMajMin  majMinEq    "MajMin"    fp sfreq
   --"fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     "Sevth"     fp sfreq -- (12*3)+(12*4)+1?
   --"fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv "MajMinInv" fp sfreq -- (12*2*4)?
   --"fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  "SevthInv"  fp sfreq -- 23?
 
-  -- compute the fusion glass ceilings
-  "fusionRB"   -> fbase Nothing eRoot   (overlapEval chordClassEq) rootOnlyEq   fp sfreq 11 True False 
-  "fusionMMB"  -> fbase Nothing eMajMin (overlapEval chordClassEq) rootOnlyEq   fp sfreq 11 True False 
---rootOnlyEq
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
 pFormat :: Args MirexArgs -> Format
