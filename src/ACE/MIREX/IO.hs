@@ -182,9 +182,9 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       -- without GT
       tms <- getCurDirectoryContents dir 
       ar <- mapM doTeam tms -- all results 
-      let arNoGT = map (filter (\mc -> team mc /= "Ground-truth")) ar
+      let arNoGT = filter (\mc -> team mc /= "Ground-truth") . concat $ ar
       -- group from all teams by songID
-      let arS   = groupByIDs . concat $ arNoGT
+      let arS   = groupByIDs arNoGT
       -- if msong is set, we only only evaluate one team, 
       -- and otherwise we only ignore the "Ground-Truth" directory
       let arS'  = case msong of
@@ -201,16 +201,16 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
                    Just s  -> filterMChordsID s arSGT
                    Nothing -> arSGT
       -- align per songID, i.e. sample every n seconds, and fuse
-      let garSGT  = map (sampleMChordsM s) arS'
+      let garSGT  = map (sampleMChordsM s) arSGT'
 
       -- glass ceiling 
-      ceilings <- mapM (fusionBaseLine ev eveq feval) $ garSGT
+      ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
       -- data fusion
-      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garS
+      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 7)) garS
       -- majority vote
-      mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet 5))      garS 
+      mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      7)) garS 
       -- random picking
-      rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet 5))  garS 
+      rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  7))  garS 
       
       let garSPP = (map.map) (fst . preProcess) garS
       let mcF    = map (fst . preProcess) fusedAllR
@@ -221,7 +221,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let both    = zipWith (++) garSPP $ map (:[]) ceilings
       let both1   = zipWith (++) both $ map (:[]) mcR
       let both2   = zipWith (++) both1 $ map (:[]) mcMV
-      let both3   = zipWith (++) both1 $ map (:[]) mcF
+      let both3   = zipWith (++) both2 $ map (:[]) mcF
       
       blsf <- parallel . map (evaluateFusionSong feval ev) $ both3
       let coll   = show . collection . head $ mcF

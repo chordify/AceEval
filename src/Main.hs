@@ -168,7 +168,7 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                               tpf tm   = "Team: " ++ show tm ++ "\n"
                               tcsv tm  = show tm ++ ","
                               stdPp    = pVerb arg [overlapRatio, overlapDur]
-                              sfreq    = 0.1
+                              sfreq    = 0.01
                               --fp = "/Users/hvkoops/repos/aceeval/algorithmic-output/2013/billboard2013"
                               in case getRequiredArg arg VocabularyMapping of
   "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) stdPp h t fp

@@ -25,7 +25,7 @@ import System.FilePath         ( (</>), splitDirectories, joinPath
 
 data Format     = JS | LAB deriving (Show, Eq)
 data Collection = Billboard2012 | Billboard2013 | Beatles   deriving (Show, Eq)
-data Year       = Y2010 | Y2011 | Y2012 | Y2013
+data Year       = Y2010 | Y2011 | Y2012 | Y2013 deriving (Ord, Eq)
 type Team       = String
 type SongID     = Int
 
@@ -41,7 +41,7 @@ data MChords    = MChords { collection  :: Collection
                           , songID      :: SongID
                           , chords      :: [Timed ChordLabel]
                           , groundTruth :: Maybe [Timed ChordLabel]
-                          }  
+                          }  deriving (Eq)
                           
 instance Show MChords where
   show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
