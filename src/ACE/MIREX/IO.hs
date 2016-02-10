@@ -36,8 +36,7 @@ import Data.Function         (on)
 import Data.List             (groupBy, sort, sortBy, nub, transpose)
 import Data.Ord              (comparing)
 
-import Fusion.Calc           (listHandle, listHandleGeneric, 
-                              listHandleGenericQuiet, 
+import Fusion.Calc           (listHandle,  
                               listMVGenericQuiet, listRandomGenericQuiet,
                               listHandleGenericQuietD, listHandleGenericVerbose)
 
@@ -206,11 +205,11 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       -- glass ceiling 
       ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
       -- data fusion
-      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 7)) garS
+      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garS
       -- majority vote
-      mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      7)) garS 
+      mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      5)) garS 
       -- random picking
-      rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  7))  garS 
+      rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  5))  garS 
       
       let garSPP = (map.map) (fst . preProcess) garS
       let mcF    = map (fst . preProcess) fusedAllR
@@ -218,7 +217,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let mcR    = map (fst . preProcess) rAllR
       let mcC    = map (fst . preProcess) ceilings
       
-      let both    = zipWith (++) garSPP $ map (:[]) ceilings
+      let both    = zipWith (++) garSPP $ map (:[]) mcC
       let both1   = zipWith (++) both $ map (:[]) mcR
       let both2   = zipWith (++) both1 $ map (:[]) mcMV
       let both3   = zipWith (++) both2 $ map (:[]) mcF
@@ -227,6 +226,14 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let coll   = show . collection . head $ mcF
       writeCSV (coll++"_"++sev++".csv") blsf
       return ()
+
+evaluateFusionSong :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> IO (SongResults)
+evaluateFusionSong ef ev mcs = do   
+  let s   = songID . head $ mcs
+  l <- mapM (evaluateSingle ef ev) mcs
+  let ret = (s, l) 
+  putStrLn . show $ (show s ++ show l)
+  return (ret)
 
 -- find fusion upper bound by comparing MIREX evaluations
 fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO (MChords)
@@ -295,14 +302,6 @@ toPlotFile mcs = intercalate "\n" $ (["no\t"] ++ (map (fbracket . show . line) m
 
 fbracket :: String -> String
 fbracket = filter (/= '[') . filter (/= ']')
-
-evaluateFusionSong :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> IO (SongResults)
-evaluateFusionSong ef ev mcs = do   
-  let s   = songID . head $ mcs
-  l <- mapM (evaluateSingle ef ev) mcs
-  let ret = (s, l) 
-  putStrLn . show $ (show s ++ show l)
-  return (ret)
 
 evaluateSingle :: CCEvalFunction -> (CCEval Double -> Double) -> MChords -> IO (Team,Double)
 evaluateSingle ef ev mc = do

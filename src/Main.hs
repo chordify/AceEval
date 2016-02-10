@@ -181,7 +181,7 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                    csvPerSongForAllTeams (Just tcsv) (pVerb arg [overlapRatioCCEval]) h t fp
   "mx13seg"   -> evaluateMirex segmentEval (return . map segScore) csvPerSongForAllTeams (Just tcsv) (pVerb arg [id]) h t fp
   "segment"   -> evaluateMirex segmentEval reportSegment r (Just tpf) (pVerb arg [id]) h t fp
-  
+  -- fusion calls:
   "fusionR"   -> fusionMirex Nothing chordLabelToInt      intPCtoChordLabel (overlapEval chordClassEq) eRoot    rootOnlyEq  "ROOT"      fp sfreq
   "fusionMM"  -> fusionMirex Nothing chordLabelToMajMin   id                (overlapEval chordClassEq) eMajMin  majMinEq    "MajMin"    fp sfreq
   --"fusionS"   -> fusionMirex Nothing mchordsToMajMinS     id                (overlapEval chordClassEq) eSevth     "Sevth"     fp sfreq -- (12*3)+(12*4)+1?
