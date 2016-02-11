@@ -36,8 +36,9 @@ import Data.Function         (on)
 import Data.List             (groupBy, sort, sortBy, nub, transpose)
 import Data.Ord              (comparing)
 
-import Fusion.Calc           (listHandle,  
+import Fusion.Calc           (listHandle,  listHandleGenericQuietDP, pickNU,
                               listMVGenericQuiet, listRandomGenericQuiet,
+                              listHandleGenericQuietDSub, 
                               listHandleGenericQuietD, listHandleGenericVerbose)
 
 type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
@@ -202,14 +203,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       -- align per songID, i.e. sample every n seconds, and fuse
       let garSGT  = map (sampleMChordsM s) arSGT'
 
-      -- glass ceiling 
-      ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
-      -- data fusion
-      fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garS
-      -- majority vote
-      mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      5)) garS 
-      -- random picking
-      rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  5))  garS 
+      (ceilings, fusedAllR, mvAllR, rAllR) <- combineAll cfront cback feval ev eveq s garS garSGT
       
       let garSPP = (map.map) (fst . preProcess) garS
       let mcF    = map (fst . preProcess) fusedAllR
@@ -218,14 +212,67 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let mcC    = map (fst . preProcess) ceilings
       
       let both    = zipWith (++) garSPP $ map (:[]) mcC
-      let both1   = zipWith (++) both $ map (:[]) mcR
-      let both2   = zipWith (++) both1 $ map (:[]) mcMV
-      let both3   = zipWith (++) both2 $ map (:[]) mcF
+      let both1   = zipWith (++) both   $ map (:[]) mcR
+      let both2   = zipWith (++) both1  $ map (:[]) mcMV
+      let both3   = zipWith (++) both2  $ map (:[]) mcF
       
       blsf <- parallel . map (evaluateFusionSong feval ev) $ both3
       let coll   = show . collection . head $ mcF
       writeCSV (coll++"_"++sev++".csv") blsf
       return ()
+
+combineAll :: (Ord a, Show a) => ([ChordLabel] -> [a])
+              -- ^ converts an MChords to a new representation, e.g. roots
+              -> (a -> ChordLabel)
+              -- ^ converts new representation back to MChords
+              -> CCEvalFunction
+              -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
+              -> (CCEval Double -> Double)
+              -- what to evaluate. e.g. eMajMin
+              -> (RefLab -> ChordLabel -> EqIgnore)
+              -- ^ same but string
+              -> NumData
+              -- ^ Sampling frequency
+              -> [[MChords]]
+              -> [[MChords]]
+              -> IO ([MChords], [MChords], [MChords], [MChords])
+combineAll cfront cback feval ev eveq s garS garSGT = do
+    -- glass ceiling 
+  ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
+  -- data fusion
+  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 3)) garSGT
+  -- majority vote
+  mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      4)) garS 
+  -- random picking
+  rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  4))  garS 
+  return (ceilings, fusedAllR, mvAllR, rAllR)
+
+combineAllRand :: (Ord a, Show a) => ([ChordLabel] -> [a])
+              -- ^ converts an MChords to a new representation, e.g. roots
+              -> (a -> ChordLabel)
+              -- ^ converts new representation back to MChords
+              -> CCEvalFunction
+              -- a corresponding eval function, e.g. (overlapEval rootOnlyEq)
+              -> (CCEval Double -> Double)
+              -- what to evaluate. e.g. eMajMin
+              -> (RefLab -> ChordLabel -> EqIgnore)
+              -- ^ same but string
+              -> NumData
+              -- ^ Sampling frequency
+              -> [[MChords]]
+              -> [[MChords]]
+              -> IO ([MChords], [MChords], [MChords], [MChords])
+combineAllRand cfront cback feval ev eveq s garS garSGT = do
+  pickedsources <- mapM (pickNU 6) garS      
+    -- glass ceiling 
+  ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
+  -- data fusion
+  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) pickedsources
+  -- majority vote
+  mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      4)) pickedsources 
+  -- random picking
+  rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  4))  pickedsources 
+  return (ceilings, fusedAllR, mvAllR, rAllR)
 
 evaluateFusionSong :: CCEvalFunction -> (CCEval Double -> Double) -> [MChords] -> IO (SongResults)
 evaluateFusionSong ef ev mcs = do   
