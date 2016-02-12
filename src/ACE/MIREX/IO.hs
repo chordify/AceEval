@@ -206,6 +206,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       (ceilings, fusedAllR, mvAllR, rAllR) <- combineAll cfront cback feval ev eveq s garS garSGT
       
       let garSPP = (map.map) (fst . preProcess) garS
+
       let mcF    = map (fst . preProcess) fusedAllR
       let mcMV   = map (fst . preProcess) mvAllR
       let mcR    = map (fst . preProcess) rAllR
@@ -240,11 +241,11 @@ combineAll cfront cback feval ev eveq s garS garSGT = do
     -- glass ceiling 
   ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
   -- data fusion
-  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 3)) garSGT
+  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garSGT
   -- majority vote
   mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      4)) garS 
   -- random picking
-  rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  4))  garS 
+  rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  4)) garS 
   return (ceilings, fusedAllR, mvAllR, rAllR)
 
 combineAllRand :: (Ord a, Show a) => ([ChordLabel] -> [a])
@@ -371,18 +372,31 @@ combineChordsM :: (Show a, Ord a) =>
                   ([a] -> [[a]] -> IO ([a])) ->
                   [MChords] -> 
                   IO (MChords)
-combineChordsM team spl cfront cback strategy mc = do
+combineChordsM t spl cfront cback strategy mc = do
+  let gt = filter (\m -> (team m) == "Ground-truth") mc 
+  let others = filter (\m -> (team m) /= "Ground-truth") mc 
+
   -- convert from ChordLabel with cfront:
   let newrep = map (cfront . dropTimed . chords) $ mc
+  let newrepgt = map (cfront . dropTimed . chords) $ gt
   -- fuse the converted chords
-      dom = nub . cfront $ allMMChords
+      dom = nub . cfront $ allMMChords      
+  --putStrLn . show $ dom
   fusedr <- strategy dom newrep
+  --putStrLn $ "newrep :"
+  --putStrLn . show $ newrep
+  --writeFile "chord.csv" (show newrep)
+  --putStrLn $ "gt:"
+  --putStrLn . show $ newrepgt
+  --writeFile "fusion.csv" (show fusedr)
+  --putStrLn $ "df out length:"
+  --putStrLn . show $ fusedr
   -- convert back to [Chordlabel]:
   let fusedrTC = map cback fusedr
   -- reattach the timestamps 
   let fusedHT = attachTime spl fusedrTC
   -- make new MChords:
-  let newmc = insertNewChords (mc!!0) fusedHT team
+  let newmc = insertNewChords (mc!!0) fusedHT t
   return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
 
 insertNewChords :: MChords -> [Timed ChordLabel] -> String -> MChords
