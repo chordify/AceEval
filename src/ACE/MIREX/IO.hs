@@ -195,8 +195,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
     
       -- with GT for glass ceiling
       let arSGT   = groupByIDs . concat $ ar
-      -- if msong is set, we only only evaluate one team, 
-      -- and otherwise we only ignore the "Ground-Truth" directory
+      -- if msong is set, we only only evaluate one team
       let arSGT'  = case msong of
                    Just s  -> filterMChordsID s arSGT
                    Nothing -> arSGT
