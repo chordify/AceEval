@@ -27,6 +27,7 @@ def box(fname, info=False):
 
 	data    = pd01.ix[:,1:]
 	pvals   = np.array([stats.wilcoxon(pd01.ix[:,i], pd01.ix[:,data.shape[1]])[1] for i in np.arange(1,data.shape[1])])
+	pvals   = np.array([stats.ranksums(pd01.ix[:,i], pd01.ix[:,data.shape[1]])[1] for i in np.arange(1,data.shape[1])])
 	medians = [np.median(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
 	stds    = [np.std(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
 	means   = [np.mean(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]

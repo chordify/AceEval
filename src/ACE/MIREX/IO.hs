@@ -241,7 +241,7 @@ combineAll cfront cback feval ev eveq s garS garSGT = do
     -- glass ceiling 
   ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
   -- data fusion
-  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garSGT
+  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garS
   -- majority vote
   mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      4)) garS 
   -- random picking
