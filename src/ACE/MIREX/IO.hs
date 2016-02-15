@@ -159,7 +159,8 @@ fusionMirex :: (Ord a, Show a)
               -- ^ Sampling frequency
               -> IO ()
 fusionMirex msong cfront cback feval ev eveq sev dir s =
-   do let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
+   do putStrLn . show $ dir
+      let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
           -- | Evaluates the submission of a single team
           doTeam tm = 
             do putStr . mtp $ tm
