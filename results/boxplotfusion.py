@@ -26,11 +26,15 @@ def box(fname, info=False):
 	labels = pd01.columns.values[1:]
 
 	data    = pd01.ix[:,1:]
-	pvals   = np.array([stats.wilcoxon(pd01.ix[:,i], pd01.ix[:,data.shape[1]])[1] for i in np.arange(1,data.shape[1])])
-	pvals   = np.array([stats.ranksums(pd01.ix[:,i], pd01.ix[:,data.shape[1]])[1] for i in np.arange(1,data.shape[1])])
 	medians = [np.median(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
 	stds    = [np.std(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
 	means   = [np.mean(pd01.ix[:,i]) for i in np.arange(1,pd01.shape[1])]
+	
+	pd01mx = pd01.as_matrix()
+	friedman = stats.friedmanchisquare(*[pd01mx[i,:] for i in np.arange(1,data.shape[1])])
+	pvals   = np.array([stats.wilcoxon(pd01.ix[:,i], pd01.ix[:,data.shape[1]])[1] for i in np.arange(1,data.shape[1])])
+	# pvals   = np.array([stats.ranksums(pd01.ix[:,i], pd01.ix[:,data.shape[1]])[1] for i in np.arange(1,data.shape[1])])
+	# pvals   = stats.friedmanchisquare([pd01.ix[:,i] for i in np.arange(1,data.shape[1])])
 
 	# sns.set_style("whitegrid")
 	sns.set(style="ticks", palette='Set2')
@@ -50,7 +54,7 @@ def box(fname, info=False):
 	plt.ylim([0,100])
 	plt.yticks(np.arange(0,110,10))
 	plt.xticks(np.arange(0,len(labels)), labels, rotation='vertical')
-	plt.title(fname, y=1.09)
+	plt.title(fname + " " + "friedman: " + str(friedman), y=1.09)
 	plt.show()
 
 def main(fname, info):
