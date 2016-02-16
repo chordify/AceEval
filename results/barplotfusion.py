@@ -19,45 +19,63 @@ def stars(p):
    else:
        return "-"
 
-# fname = "/Users/hvkoops/repos/aceeval/results/bb13/root/01rootint.csv"
+path = "bb12/"
+r12  = path + "Billboard2012_ROOT.csv"
+rpd01 = pd.read_csv(r12, sep='\t', header=0, dtype=np.float64)
 
-def box(fname, info=False):
-	pd01 = pd.read_csv(fname, sep='\t', header=0, dtype=np.float64)
-	
-	labels 	= pd01.columns.values
-	teams  	= labels[1:-4]
-	medians = pd01[teams].median(axis=1)
+rlabels 	= rpd01.columns.values
+rteams  	= rlabels[1:-4]
+rmedians 	= rpd01[rteams].median(axis=1)
+rrdiff	 	= np.median(rpd01['RANDOM'] - rmedians)
+rmvdiff  	= np.median(rpd01['MVOTE']  - rmedians)
+rfdiff 	 	= np.median(rpd01['FUSION'] - rmedians)
+ralldiff 	= np.array([rrdiff, rmvdiff, rfdiff])
 
-	rdiff	= np.median(pd01['RANDOM'] - medians)
-	mvdiff  = np.median(pd01['MVOTE'] - medians)
-	fdiff 	= np.median(pd01['FUSION'] - medians)
-	
-	rdiffstd = np.var(pd01['RANDOM'] - medians)
-	mvdiffstd = np.var(pd01['MVOTE'] - medians)
-	fdiffstd = np.var(pd01['FUSION'] - medians)
+mm12 = path + "Billboard2012_MajMin.csv"
+mmpd01 = pd.read_csv(mm12, sep='\t', header=0, dtype=np.float64)
 
-	alldiff = np.array([rdiff, mvdiff, fdiff])
-	allsts = np.array([rdiffstd, mvdiffstd, fdiffstd])
+mmlabels 	= mmpd01.columns.values
+mmteams  	= mmlabels[1:-4]
+mmmedians 	= mmpd01[mmteams].median(axis=1)
+mmrdiff	 	= np.median(mmpd01['RANDOM'] - mmmedians)
+mmmvdiff  	= np.median(mmpd01['MVOTE']  - mmmedians)
+mmfdiff 	= np.median(mmpd01['FUSION'] - mmmedians)
+mmalldiff 	= np.array([mmrdiff, mmmvdiff, mmfdiff])
 
-	fig, ax = plt.subplots()
-	colors = [sns.xkcd_rgb["pale red"], sns.xkcd_rgb["medium green"], sns.xkcd_rgb["denim blue"]]		
-	barp = ax.bar(np.arange(0,3), alldiff, color=colors, width=0.8, align='center')
-	barlabels = ['rand', 'mvote', 'fusion']
-	ax.set_xticklabels(barlabels)
-	
-	sns.set_style("whitegrid")
-	plt.ylim([np.min(alldiff)-0.5,np.max(alldiff)+0.5])
-	plt.xticks(np.arange(0,3,1))
-	# plt.xticks(np.arange(0,len(labels)), labels, rotation='vertical')
-	
-	plt.title(fname + " differences")
-	plt.show()
+ball = ['Root', 'MajMin', 'MajMin7']
+# rdiffstd 	= np.var(pd01['RANDOM'] - medians)
+# mvdiffstd 	= np.var(pd01['MVOTE'] - medians)
+# fdiffstd 	= np.var(pd01['FUSION'] - medians)
+# rallsts = np.array([rdiffstd, mvdiffstd, fdiffstd])
 
-def main(fname, info):
-	box(fname, info)
+sns.set_style("whitegrid")
+sns.set_context("paper")
+# sns.set_style("ticks", {"xtick.major.size": 16, "ytick.major.size": 16})
+colors = sns.color_palette("GnBu_d", n_colors=4)[::-1]
 
-if __name__ == "__main__":
-	if len(sys.argv) > 2:
-   		main(sys.argv[1], sys.argv[2])
-   	if len(sys.argv) == 2:
-   		main(sys.argv[1], False)
+fig, ax 	= plt.subplots(figsize=(5,5))
+plt.rc('text', usetex=True)
+font = {'family' : 'serif', 'weight' : 'bold', 'size'   : 30}
+plt.rc('font', **font)
+offset 		= (1. / len(ball)) - 0.05
+inx 		= np.arange(0,len(ball))-offset
+rbarp 		= ax.bar(inx, ralldiff, color=colors[0], width=offset, align='center')
+mmbarp 		= ax.bar(inx+offset, mmalldiff, color=colors[2], width=offset, align='center')
+sbarp 		= ax.bar(inx+offset+offset, mmalldiff+0.3, color=colors[3], width=offset, align='center')
+barlabels 	= ['$\\textsc{rand}$', '$\\textsc{mv}$', '$\\textsc{fusion}$']
+ax.set_xticklabels(barlabels, rotation='vertical')
+
+allvals = np.concatenate([mmalldiff, ralldiff])
+# plt.yticks(np.arange(-6,-6),fontsize=16)
+fontsize = 13
+ax.tick_params(labelsize=fontsize)
+plt.ylim([np.floor(np.min(allvals)),np.ceil(np.max(allvals))])
+plt.ylabel("Percentage accuracy difference",fontsize=fontsize)
+plt.xticks(np.arange(0,len(ball),1),fontsize=fontsize)
+ax.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=fontsize, frameon=True)
+ax.yaxis.grid(False)
+
+sns.despine(left=True)
+plt.tight_layout()
+# plt.title(path + " differences")
+plt.show()

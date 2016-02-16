@@ -22,7 +22,7 @@ module ACE.Evaluation.ChordClass ( ChordClass (..)
                                  , rootPCwithN
                                  , mchordsToInt
                                  , mchordsToMajMin
-                                 , mchordsToMajMinS
+                                 , chordLabelToMajMinS
                                  , mchordsToMajMinI
                                  , allMMChords
                                  , chordLabelToInt
@@ -59,7 +59,9 @@ testCC = ChordClass (RootPC 0) NoMajMin NoSev NoInv
 allRootChords = [Chord (pcToRoot i) None [] (Note Nat I1) | i <- [0..11]] 
 
 allMMChords' :: [ChordLabel]
-allMMChords'   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- [Maj, Min]]
+allMMChords'   = [Chord (pcToRoot i) mm [] (Note Nat I1) | i <- [0..11], mm <- mmsevths]
+
+mmsevths = [Maj, Min, Maj7, Min7, Sev, Dim7, HDim7, MinMaj7, Aug7]
 
 allMMChords = [UndefChord, NoChord] ++ allMMChords'
 
@@ -98,8 +100,8 @@ chordLabelToMajMin cls = map g cls where
     h (ChordClass (RootPC i) mm _ _) = Chord (pcToRoot i) (toShortHand mm) [] (Note Nat I1)
 
 
-mchordsToMajMinS :: MChords -> [ChordLabel]
-mchordsToMajMinS mcs = map g ((dropTimed . chords) mcs) where
+chordLabelToMajMinS :: [ChordLabel] -> [ChordLabel]
+chordLabelToMajMinS mcs = map g mcs where
   g :: ChordLabel -> ChordLabel
   g UndefChord = UndefChord
   g NoChord    = NoChord

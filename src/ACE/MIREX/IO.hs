@@ -296,6 +296,21 @@ fusionBaseLine ev evv feval mc = do
         sid       = songID newmc 
     return (newmc)
 
+-- find fusion upper bound by comparing MIREX evaluations
+-- this should apply cfront and cback
+--fusionBaseLineC :: ([ChordLabel] -> [a]) -> (a -> ChordLabel) -> (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO (MChords)
+--fusionBaseLineC cfront cback ev evv feval mc = do
+--    let tcls      = transpose . map (expandTimed . chords) . filter (\mc -> team mc /= "Ground-truth") $ mc
+--        gtmc      = head . filter (\mc -> team mc == "Ground-truth") $ mc
+--        tgt       = makeGT . expandTimed . chords $ gtmc
+--        newch     = zipWith (eqListTimed evv) tgt tcls
+--        --clist     = copyTimeStamps newch (chords gtmc)
+--        newmc     = MChords (collection gtmc) (year gtmc) ("CELIING") (songID gtmc) (newch) (Just (chords $ gtmc))
+--        frac      = ev . overlapRatioCCEval . evaluate feval $! newmc
+--        sid       = songID newmc 
+--    return (newmc)
+
+
 
 copyTimeStamps :: [ChordLabel] -> [Timed ChordLabel] -> [Timed ChordLabel]
 copyTimeStamps cl tcl = zipWith replaceCL cl tcl where

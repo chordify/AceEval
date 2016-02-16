@@ -112,6 +112,23 @@ majMinEq gt test = chordCompare rootEq majMin gt test
                        -- cannot happen
                        _ -> error "majMin: unexpected chord class"
 
+--Sevenths:?
+--majMinEq :: RefLab -> ChordLabel -> EqIgnore
+--majMinEq gt test = chordCompare rootEq majMin gt test
+   
+--  -- ignore the NoClass and only return True in case of maj/maj and min/min
+--  where majMin :: RefLab -> ChordLabel -> EqIgnore
+--        majMin x y = case ( toMajMin . toTriad $ refLab x
+--                          , toMajMin $ toTriad          y ) of
+--                       (MajClass, MajClass) -> Equal
+--                       (MajClass, MinClass) -> NotEq
+--                       (MinClass, MinClass) -> Equal
+--                       (MinClass, MajClass) -> NotEq
+--                       (NoClass , _       ) -> Ignore
+--                       (_       , NoClass ) -> Ignore
+--                       -- cannot happen
+--                       _ -> error "majMin: unexpected chord class"
+
 
 -- | Returns True if both 'ChordLabel's are equal at the triad level: they are
 -- either moth major or both minor. "None Chords" match only with other "None
