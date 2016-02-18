@@ -32,7 +32,7 @@ rmvdiff  	= np.median(rpd01['MVOTE'])  - rmaxmed
 rfdiff 	 	= np.median(rpd01['FUSION']) - rmaxmed
 ralldiff 	= np.array([rrdiff, rmvdiff, rfdiff])
 
-mm12      = path + "Billboard20" + year + "_MajMin.csv"
+mm12      = path + "Billboard20" + year + "_MajMin_new.csv"
 mmpd01    = pd.read_csv(mm12, sep='\t', header=0, dtype=np.float64)
 mmlabels 	= mmpd01.columns.values
 mmteams  	= mmlabels[1:-4]
@@ -86,7 +86,7 @@ ax.tick_params(labelsize=fontsize)
 plt.ylim([-15,8])
 plt.yticks(np.arange(-13,8,1))
 
-plt.ylabel("Percentage accuracy difference",fontsize=fontsize)
+plt.ylabel("\% Chord Symbo Recall difference",fontsize=fontsize)
 plt.xticks(np.arange(0,len(ball),1),fontsize=fontsize)
 ax.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=fontsize, frameon=True)
 # ax.yaxis.grid(False)
