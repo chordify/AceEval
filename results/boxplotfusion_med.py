@@ -19,8 +19,8 @@ def stars(p):
    else:
        return "-"
 
-year = str(12)
-path = "bb" + year + "/"
+year      = str(13)
+path      = "bb" + year + "/"
 
 r12       = path + "Billboard20" + year + "_ROOT.csv"
 rpd01     = pd.read_csv(r12, sep='\t', header=0, dtype=np.float64)
@@ -52,6 +52,8 @@ svdiff    = np.median(spd01['MVOTE'])  - smaxmed
 sfdiff    = np.median(spd01['FUSION']) - smaxmed
 salldiff  = np.array([srdiff, svdiff, sfdiff])
 
+# statistics
+
 ball = ['Root', 'MajMin', 'MajMin7']
 
 sns.set_style("whitegrid")
@@ -64,12 +66,17 @@ plt.rc('text', usetex=True)
 font = {'family' : 'serif', 'weight' : 'bold', 'size'   : 30}
 plt.rc('font', **font)
 offset 		= (1. / len(ball)) - 0.05
-inx 		= np.arange(0,len(ball))-offset
+inx 		  = np.arange(0,len(ball))-offset
 rbarp 		= ax.bar(inx, ralldiff, color=colors[0], width=offset, align='center')
 mmbarp 		= ax.bar(inx+offset, mmalldiff, color=colors[2], width=offset, align='center')
 sbarp 		= ax.bar(inx+offset+offset, salldiff, color=colors[3], width=offset, align='center')
-barlabels 	= ['$\\textsc{rand}$', '$\\textsc{mv}$', '$\\textsc{fusion}$']
+barlabels = ['$\\textsc{rand}$', '$\\textsc{mv}$', '$\\textsc{fusion}$']
 ax.set_xticklabels(barlabels, rotation='vertical')
+
+starfont = {'family' : 'serif', 'weight' : 'bold', 'size'   : 10}
+ax.text(rbarp[2].get_x() + rbarp[2].get_width()/2., 1.05*rbarp[2].get_height(), stars(stats.wilcoxon(rpd01['FUSION'],rpd01['MVOTE'])[1]), ha='center', va='bottom', **starfont)
+ax.text(mmbarp[2].get_x() + mmbarp[2].get_width()/2., 1.05*mmbarp[2].get_height(), stars(stats.wilcoxon(mmpd01['FUSION'],mmpd01['MVOTE'])[1]), ha='center', va='bottom', **starfont)
+ax.text(sbarp[2].get_x() + sbarp[2].get_width()/2., 1.05*sbarp[2].get_height(), stars(stats.wilcoxon(spd01['FUSION'],spd01['MVOTE'])[1]), ha='center', va='bottom', **starfont)
 
 allvals = np.concatenate([mmalldiff, ralldiff, salldiff])
 # plt.yticks(np.arange(-6,-6),fontsize=16)
