@@ -208,8 +208,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let garSPP = (map.map) (fst . preProcess) garS
 
       let mcF    = map (fst . preProcess) fusedAllR
-      
-      let wcsr = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ fusedAllR
+      let wcsr = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcF
       putStrLn ("wcsr = " ++ (show wcsr))
       
       let mcMV   = map (fst . preProcess) mvAllR
