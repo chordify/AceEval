@@ -206,15 +206,11 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       (ceilings, fusedAllR, mvAllR, rAllR) <- combineAll cfront cback feval ev eveq s garS garSGT
       
       let garSPP = (map.map) (fst . preProcess) garS
-
-      let mcF    = map (fst . preProcess) fusedAllR
-      let wcsr = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcF
-      putStrLn ("wcsr = " ++ (show wcsr))
-      
+      let mcF    = map (fst . preProcess) fusedAllR      
       let mcMV   = map (fst . preProcess) mvAllR
       let mcR    = map (fst . preProcess) rAllR
       let mcC    = map (fst . preProcess) ceilings
-      
+
       let both    = zipWith (++) garSPP $ map (:[]) mcC
       let both1   = zipWith (++) both   $ map (:[]) mcR
       let both2   = zipWith (++) both1  $ map (:[]) mcMV
@@ -223,7 +219,24 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       blsf <- parallel . map (evaluateFusionSong feval ev) $ both3
       let coll   = show . collection . head $ mcF
       writeCSV (coll++"_"++sev++".csv") blsf
+
+      --let wcsrF  = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcF
+      --let wcsrMV = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcMV
+      --let wcsrR  = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcR
+      --putStrLn ("RANDOM wcsr = " ++ (show wcsrR))
+      --putStrLn ("MVOTE  wcsr = " ++ (show wcsrMV))      
+      --putStrLn ("FUSION wcsr = " ++ (show wcsrF))
+
+      wcsrs <- mapM getWCSR (transpose both3)
+      putStrLn . intercalate "\n" $ wcsrs
+      writeFile (coll++"_"++sev++"_wcsrs.csv") (intercalate "\n" $ wcsrs)
       return ()
+
+getWCSR :: [MChords] -> IO (String)
+getWCSR mc = do
+  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mc
+      t     = team . head $ mc
+  return ("RANDOM " ++ t ++ " = " ++ wcsr)
 
 combineAll :: (Ord a, Show a) => ([ChordLabel] -> [a])
               -- ^ converts an MChords to a new representation, e.g. roots
@@ -285,6 +298,12 @@ evaluateFusionSong ef ev mcs = do
   let ret = (s, l) 
   putStrLn . show $ (show s ++ show l)
   return (ret)
+
+evaluateSingle :: CCEvalFunction -> (CCEval Double -> Double) -> MChords -> IO (Team,Double)
+evaluateSingle ef ev mc = do
+  let t = team mc
+      d = ev . overlapRatioCCEval . evaluate ef $! mc
+  return (d `seq` (t,d))  
 
 -- find fusion upper bound by comparing MIREX evaluations
 fusionBaseLine :: (CCEval Double -> Double) -> (RefLab -> ChordLabel -> EqIgnore) -> CCEvalFunction -> [MChords] -> IO (MChords)
@@ -368,12 +387,6 @@ toPlotFile mcs = intercalate "\n" $ (["no\t"] ++ (map (fbracket . show . line) m
 
 fbracket :: String -> String
 fbracket = filter (/= '[') . filter (/= ']')
-
-evaluateSingle :: CCEvalFunction -> (CCEval Double -> Double) -> MChords -> IO (Team,Double)
-evaluateSingle ef ev mc = do
-  let t = team mc
-      d = ev . overlapRatioCCEval . evaluate ef $! mc
-  return (d `seq` (t,d))
 
 sampletoChordClass :: NumData -> [MChords] -> [[ChordClass]]
 sampletoChordClass spl = ((map.map) toChordClass) . (sampleMChords spl)
