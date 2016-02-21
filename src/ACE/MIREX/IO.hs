@@ -220,13 +220,6 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let coll   = show . collection . head $ mcF
       writeCSV (coll++"_"++sev++".csv") blsf
 
-      --let wcsrF  = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcF
-      --let wcsrMV = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcMV
-      --let wcsrR  = weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mcR
-      --putStrLn ("RANDOM wcsr = " ++ (show wcsrR))
-      --putStrLn ("MVOTE  wcsr = " ++ (show wcsrMV))      
-      --putStrLn ("FUSION wcsr = " ++ (show wcsrF))
-
       wcsrs <- mapM getWCSR (transpose both3)
       putStrLn . intercalate "\n" $ wcsrs
       writeFile (coll++"_"++sev++"_wcsrs.csv") (intercalate "\n" $ wcsrs)
@@ -234,7 +227,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
 
 getWCSR :: [MChords] -> IO (String)
 getWCSR mc = do
-  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval majMinEq)) $ mc
+  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval rootEq)) $ mc
       t     = team . head $ mc
   return ("RANDOM " ++ t ++ " = " ++ wcsr)
 
