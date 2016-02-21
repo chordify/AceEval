@@ -185,8 +185,6 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   "fusionR"   -> fusionMirex Nothing chordLabelToInt      intPCtoChordLabel (overlapEval chordClassEq) eRoot    rootOnlyEq  "ROOT"      fp sfreq
   "fusionMM"  -> fusionMirex Nothing chordLabelToMajMin   id                (overlapEval chordClassEq) eMajMin  majMinEq    "MajMin"    fp sfreq
   "fusionS"   -> fusionMirex Nothing chordLabelToMajMinS  id                (overlapEval chordClassEq) eSevth   majMinEq    "Sevth"     fp sfreq -- (12*3)+(12*4)+1?
-  --"fusionMMI" -> fusionMirex Nothing mchordsToMajMinI     id                (overlapEval chordClassEq) eMajMinInv "MajMinInv" fp sfreq -- (12*2*4)?
-  --"fusionSI"  -> fusionMirex Nothing mchordsToChordLabel  id                (overlapEval chordClassEq) eSevthInv  "SevthInv"  fp sfreq -- 23?
 
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
