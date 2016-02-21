@@ -227,7 +227,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
 
 getWCSR :: [MChords] -> IO (String)
 getWCSR mc = do
-  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval rootEq)) $ mc
+  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval rootOnlyEq)) $ mc
       t     = team . head $ mc
   return ("RANDOM " ++ t ++ " = " ++ wcsr)
 
