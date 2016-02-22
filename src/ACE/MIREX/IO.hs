@@ -220,14 +220,14 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       let coll   = show . collection . head $ mcF
       writeCSV (coll++"_"++sev++".csv") blsf
 
-      wcsrs <- mapM getWCSR (transpose both3)
+      wcsrs <- mapM (getWCSR eveq) (transpose both3)
       putStrLn . intercalate "\n" $ wcsrs
       writeFile (coll++"_"++sev++"_wcsrs.csv") (intercalate "\n" $ wcsrs)
       return ()
 
-getWCSR :: [MChords] -> IO (String)
-getWCSR mc = do
-  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval rootOnlyEq)) $ mc
+getWCSR :: (RefLab -> ChordLabel -> EqIgnore) -> [MChords] -> IO (String)
+getWCSR ev mc = do
+  let wcsr  = show . weightOverlapRatio . map (evaluate (overlapEval ev)) $ mc
       t     = team . head $ mc
   return ("RANDOM " ++ t ++ " = " ++ wcsr)
 

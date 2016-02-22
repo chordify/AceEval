@@ -19,6 +19,7 @@ module ACE.Evaluation.ChordEq (
     , rootOnlyEqL
     , bassOnlyEq
     , majMinEq
+    , majMinSevEq
     , triadEq
     , mirex2010
     , chordClassEq
@@ -113,27 +114,27 @@ majMin x y = case ( toMajMin . toTriad $ refLab x
                _ -> error "majMin: unexpected chord class"
 
 --Sevenths:?
---majMinSevEq :: RefLab -> ChordLabel -> EqIgnore
---majMinSevEq gt test = chordCompare rootEq majMinS gt test   
---  -- ignore the NoClass and only return True in case of maj/maj and min/min
---  where majMinS :: RefLab -> ChordLabel -> EqIgnore
---        majMinS x y = case (majMin x y) of
---                        Equal -> case (toSevth x, toSevth y) of 
+majMinSevEq :: RefLab -> ChordLabel -> EqIgnore
+majMinSevEq gt test = chordCompare rootEq majMinS gt test   
+  -- ignore the NoClass and only return True in case of maj/maj and min/min
 
---                        e     -> e 
+majMinS :: RefLab -> ChordLabel -> EqIgnore
+majMinS x y = case (majMin x y) of
+                Equal -> case (toSevth' (toMajMin . toTriad $ refLab x) (toIntSet $ refLab x), (toSevth' (toMajMin . toTriad $ y) (toIntSet y))) of 
+                          (MinSev, MinSev  ) -> Equal
+                          (MajSev, MajSev  ) -> Equal
+                          (DimSev, DimSev  ) -> Equal
+                          (NoSev,  NoSev   ) -> Equal
+                          (_    , _        ) -> NotEq
+                e     -> e 
 
---                       (((toMajMin ix), (toSevth ix mmx)), ((toMajMin iy),(toSevth iy mmy))) of
---                       ((mmx,sx)    ,(mmx, sx)  ) -> Equal
---                       ((NoClass,_) , _         ) -> Ignore
---                       (_           ,(NoClass,_)) -> Ignore
---                       (_           , _         ) -> NotEq
---                       -- cannot happen
---                       _ -> error "majMin: unexpected chord class"
-
-  -- member 10 is = MinSev
-  -- member 11 is = MajSev
-  -- member 9  is = DimSev
-  -- otherwise    = NoSev
+-- the need of this function is retarded
+toSevth' :: ClassType -> IntSet -> Sevth
+toSevth' m is = case (m, analyseSevth is) of
+             -- We use the DimSev as a unsupported value
+             --   (_       , DimSev) -> NoSev -- :dim     unsupported
+                (MinClass, MajSev) -> DimSev -- :minmaj7 unsupported
+                (_       ,s      ) -> s
 
 -- | Returns True if both 'ChordLabel's are equal at the triad level: they are
 -- either moth major or both minor. "None Chords" match only with other "None
