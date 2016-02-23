@@ -36,10 +36,8 @@ import Data.Function         (on)
 import Data.List             (groupBy, sort, sortBy, nub, transpose)
 import Data.Ord              (comparing)
 
-import Fusion.Calc           (listHandle,  listHandleGenericQuietDP, pickNU,
-                              listMVGenericQuiet, listRandomGenericQuiet,
-                              listHandleGenericQuietDSub, 
-                              listHandleGenericQuietD, listHandleGenericVerbose)
+import Fusion.Calc           (pickNU, listHandleGenericQuietD, listHandleGenericQuietDSA,
+                              listMVGenericQuiet, listRandomGenericQuiet)
 
 type CCEvalFunction = ([Timed RefLab] -> [Timed ChordLabel] -> [Timed (CCEval EqIgnore)])
 type SongResults    = (SongID,[(Team,Double)])
@@ -206,7 +204,7 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       (ceilings, fusedAllR, mvAllR, rAllR) <- combineAll cfront cback feval ev eveq s garS garSGT
       
       let garSPP = (map.map) (fst . preProcess) garS
-      let mcF    = map (fst . preProcess) fusedAllR      
+      let mcF    = map (fst . preProcess . fst) fusedAllR
       let mcMV   = map (fst . preProcess) mvAllR
       let mcR    = map (fst . preProcess) rAllR
       let mcC    = map (fst . preProcess) ceilings
@@ -223,7 +221,28 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       wcsrs <- mapM (getWCSR eveq) (transpose both3)
       putStrLn . intercalate "\n" $ wcsrs
       writeFile (coll++"_"++sev++"_wcsrs.csv") (intercalate "\n" $ wcsrs)
+
+      let fSA    = map snd fusedAllR
+      writeSACSV (coll++"_"++sev++"_SA.csv") tms fSA
       return ()
+
+writeSACSV :: FilePath -> [String] -> [[Double]] -> IO ()
+writeSACSV fp tms sas = writeFile fp ss where
+  ss      = intercalate "\n" $ header : (lines sas)
+  
+  header :: String
+  header  = intercalate "\t" $ tms
+
+  lines :: [[Double]] -> [String]
+  lines r = map (intercalate "\t") . (map.map) show $ r
+
+writeCSV :: FilePath -> [(SongID,[(Team,Double)])] -> IO ()
+writeCSV fp rs = writeFile fp ss where
+  ss      = intercalate "\n" $ header : (map lines rs)
+  header :: String
+  header  = intercalate "\t" $ (map (show . fst)) . snd . head $ rs
+  lines :: (SongID,[(Team,Double)]) -> String
+  lines r = intercalate "\t" $ ((show.fst) r) : (map (show.snd) $ snd r)
 
 getWCSR :: (RefLab -> ChordLabel -> EqIgnore) -> [MChords] -> IO (String)
 getWCSR ev mc = do
@@ -245,17 +264,17 @@ combineAll :: (Ord a, Show a) => ([ChordLabel] -> [a])
               -- ^ Sampling frequency
               -> [[MChords]]
               -> [[MChords]]
-              -> IO ([MChords], [MChords], [MChords], [MChords])
+              -> IO ([MChords], ([(MChords, [Double])]), [MChords], [MChords])
 combineAll cfront cback feval ev eveq s garS garSGT = do
     -- glass ceiling 
   ceilings  <- mapM (fusionBaseLine ev eveq feval) $ garSGT
   -- data fusion
-  fusedAllR <- mapM (combineChordsM "FUSION" s cfront cback (listHandleGenericQuietD 5)) garSGT
+  fusedAll <- mapM (combineChordsMSA "FUSION" s cfront cback (listHandleGenericQuietDSA 5)) garSGT
   -- majority vote
   mvAllR    <- mapM (combineChordsM "MVOTE"  s cfront cback (listMVGenericQuiet      4)) garS 
   -- random picking
   rAllR     <- mapM (combineChordsM "RANDOM" s cfront cback (listRandomGenericQuiet  4)) garS 
-  return (ceilings, fusedAllR, mvAllR, rAllR)
+  return (ceilings, fusedAll, mvAllR, rAllR)
 
 combineAllRand :: (Ord a, Show a) => ([ChordLabel] -> [a])
               -- ^ converts an MChords to a new representation, e.g. roots
@@ -365,14 +384,6 @@ toPlotFilename mc = fn where
   t = show . team $ mc 
   s = show . songID $ mc 
 
-writeCSV :: FilePath -> [(SongID,[(Team,Double)])] -> IO ()
-writeCSV fp rs = writeFile fp ss where
-  ss      = intercalate "\n" $ header : (map lines rs)
-  header :: String
-  header  = intercalate "\t" $ (map (show . fst)) . snd . head $ rs
-  lines :: (SongID,[(Team,Double)]) -> String
-  lines r = intercalate "\t" $ ((show.fst) r) : (map (show.snd) $ snd r)
-
 toPlotFile :: [MChords] -> String
 toPlotFile mcs = intercalate "\n" $ (["no\t"] ++ (map (fbracket . show . line) mcs)) where
   line :: MChords -> [String]
@@ -397,31 +408,39 @@ combineChordsM :: (Show a, Ord a) =>
                   [MChords] -> 
                   IO (MChords)
 combineChordsM t spl cfront cback strategy mc = do
-  let gt = filter (\m -> (team m) == "Ground-truth") mc 
-  let others = filter (\m -> (team m) /= "Ground-truth") mc 
-
   -- convert from ChordLabel with cfront:
   let newrep = map (cfront . dropTimed . chords) $ mc
-  let newrepgt = map (cfront . dropTimed . chords) $ gt
   -- fuse the converted chords
       dom = nub . cfront $ allMMChords      
-  --putStrLn . show $ dom
   fusedr <- strategy dom newrep
-  --putStrLn $ "newrep :"
-  --putStrLn . show $ newrep
-  --writeFile "chord.csv" (show newrep)
-  --putStrLn $ "gt:"
-  --putStrLn . show $ newrepgt
-  --writeFile "fusion.csv" (show fusedr)
-  --putStrLn $ "df out length:"
-  --putStrLn . show $ fusedr
-  -- convert back to [Chordlabel]:
   let fusedrTC = map cback fusedr
   -- reattach the timestamps 
   let fusedHT = attachTime spl fusedrTC
   -- make new MChords:
   let newmc = insertNewChords (mc!!0) fusedHT t
   return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` newmc)
+
+-- combine the chords in an [MChords] using a Strategy
+combineChordsMSA :: (Show a, Ord a) => 
+                  Team ->
+                  NumData -> 
+                  ([ChordLabel] -> [a]) ->
+                  (a -> ChordLabel) -> 
+                  ([a] -> [[a]] -> IO ([a], [Double])) ->
+                  [MChords] -> 
+                  IO (MChords,[Double])
+combineChordsMSA t spl cfront cback strategy mc = do
+  -- convert from ChordLabel with cfront:
+  let newrep = map (cfront . dropTimed . chords) $ mc
+  -- fuse the converted chords
+      dom = nub . cfront $ allMMChords      
+  (fusedr,sa) <- strategy dom newrep
+  let fusedrTC = map cback fusedr
+  -- reattach the timestamps 
+  let fusedHT = attachTime spl fusedrTC
+  -- make new MChords:
+  let newmc = insertNewChords (mc!!0) fusedHT t
+  return (newrep `seq` fusedr `seq` fusedrTC `seq` fusedHT `seq` (newmc,sa))
 
 insertNewChords :: MChords -> [Timed ChordLabel] -> String -> MChords
 insertNewChords (MChords c y t s ch g) newch name = (MChords c y name s newch g)
