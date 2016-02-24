@@ -2,6 +2,7 @@
 
 import sys
 import matplotlib.pyplot as plt 
+import matplotlib.gridspec as gridspec
 import seaborn as sns
 import numpy as np
 import pandas as pd
@@ -75,21 +76,25 @@ svdiff13    = spd0113[14] - smaxmed13
 sfdiff13    = spd0113[15] - smaxmed13
 salldiff13  = np.array([srdiff13, svdiff13, sfdiff13])
 
-# ball = ['Root', 'MajMin', 'MajMin7']
 ball = ['R', 'MM', 'MM7']
 sns.set_style("whitegrid")
 sns.set_context("paper")
-# colors = sns.color_palette("GnBu_d", n_colors=4)[::-1]
-colors = sns.color_palette("RdGy", 10)[::-1]
-
-f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(5,5))
 plt.rc('text', usetex=True)
 font = {'family' : 'serif', 'weight' : 'bold', 'size'   : 30}
 plt.rc('font', **font)
-offset 		= (1. / len(ball)) - 0.05
-barlabels   = ['$\\textsc{rnd}$', '$\\textsc{mv}$', '$\\textsc{df}$']
+# colors = sns.color_palette("GnBu_d", n_colors=4)[::-1]
+colors = sns.color_palette("RdGy", 10)[::-1]
+
+f = plt.figure(figsize=(8,4))
+gs1 = gridspec.GridSpec(1,2)
+ax1 = f.add_subplot(gs1[0])
+ax2 = f.add_subplot(gs1[1])
+
+offset 		  = (1. / len(ball)) - 0.05
+barlabels   = ['','$\\textsc{rnd}$','','$\\textsc{mv}$','','$\\textsc{df}$']
 
 inx         = np.arange(0,len(ball))-offset
+print inx
 rbarp       = ax1.bar(inx,               ralldiff,    color=colors[3], width=offset, align='center')
 mmbarp      = ax1.bar(inx+offset,        mmalldiff,   color=colors[2], width=offset, align='center')
 sbarp       = ax1.bar(inx+offset+offset, salldiff,    color=colors[0], width=offset, align='center')
@@ -105,20 +110,28 @@ ax2.set_xticklabels(barlabels, rotation='vertical')
 # ax.text(mmbarp[2].get_x() + mmbarp[2].get_width()/2., 1.05*mmbarp[2].get_height(), stars(stats.wilcoxon(mmpd01['FUSION'],mmpd01['MVOTE'])[1]), ha='center', va='bottom', **starfont)
 # ax.text(sbarp[2].get_x() + sbarp[2].get_width()/2., 1.05*sbarp[2].get_height(), stars(stats.wilcoxon(spd01['FUSION'],spd01['MVOTE'])[1]), ha='center', va='bottom', **starfont)
 
-# allvals = ralldiff
-allvals = np.concatenate([ralldiff, mmalldiff, salldiff])
+allvals12 = np.concatenate([ralldiff, mmalldiff, salldiff])
+print allvals12
+allvals13 = np.concatenate([ralldiff13, mmalldiff13, salldiff13])
+print allvals13
+
 fontsize = 13
 ax1.tick_params(labelsize=fontsize)
-# plt.ylim([np.floor(np.min(allvals)),np.ceil(np.max(allvals))])
-# plt.ylim([-12,6])
-plt.yticks(np.arange(-12,6,1))
+ax2.tick_params(labelsize=fontsize)
+ax1.set_ylabel("\\textsc{wcsr} difference with best team",fontsize=fontsize)
 
-ax1.set_ylabel("\% \\textsc{wcsr} difference with best team",fontsize=fontsize)
-plt.xticks(np.arange(0,len(ball),1),fontsize=fontsize)
+ax1.set_ylim([-12,6])
+ax1.set_yticks(np.arange(-12,6,1))
+ax2.set_ylim([-12,6])
+ax2.set_yticks(np.arange(-12,6,1))
+
 ax2.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=10, frameon=True)
-# ax.yaxis.grid(False)
+ax2.yaxis.set_major_formatter(plt.NullFormatter())
+
+# ax1.set_label('\\textcs{bb\oldstylenums{12}}')
+# ax2.set_label('\\textcs{bb\oldstylenums{13}}')
 
 sns.despine(left=True)
-plt.tight_layout()
-# plt.title(path + " differences")
+gs1.tight_layout(f)
+gs1.update(wspace=0.05) # set the spacing between axes. 
 plt.show()

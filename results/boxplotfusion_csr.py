@@ -92,14 +92,14 @@ offset 		= (1. / len(ball)) - 0.05
 barlabels   = ['$\\textsc{rnd}$', '$\\textsc{mv}$', '$\\textsc{df}$']
 
 inx 		    = np.arange(0,len(ball))-offset
-rbarp 		  = ax1.bar(inx,               ralldiff,    color=colors[0], width=offset, align='center', hatch="/")
-mmbarp 		  = ax1.bar(inx+offset,        mmalldiff,   color=colors[2], width=offset, align='center', hatch="o")
-sbarp 		  = ax1.bar(inx+offset+offset, salldiff,    color=colors[3], width=offset, align='center', hatch="*")
+rbarp 		  = ax1.bar(inx,               ralldiff,    color=colors[0], width=offset, align='center')
+mmbarp 		  = ax1.bar(inx+offset,        mmalldiff,   color=colors[2], width=offset, align='center')
+sbarp 		  = ax1.bar(inx+offset+offset, salldiff,    color=colors[3], width=offset, align='center')
 ax1.set_xticklabels(barlabels, rotation='vertical')
 
-rbarp13     = ax2.bar(inx,               ralldiff13,  color=colors[0], width=offset, align='center', hatch="/")
-mmbarp13    = ax2.bar(inx+offset,        mmalldiff13, color=colors[2], width=offset, align='center', hatch="o")
-sbarp13     = ax2.bar(inx+offset+offset, salldiff13,  color=colors[3], width=offset, align='center', hatch="*")
+rbarp13     = ax2.bar(inx,               ralldiff13,  color=colors[0], width=offset, align='center')
+mmbarp13    = ax2.bar(inx+offset,        mmalldiff13, color=colors[2], width=offset, align='center')
+sbarp13     = ax2.bar(inx+offset+offset, salldiff13,  color=colors[3], width=offset, align='center')
 ax2.set_xticklabels(barlabels, rotation='vertical')
 
 # starfont = {'family' : 'serif', 'weight' : 'bold', 'size'   : 10}
