@@ -28,7 +28,7 @@ rmaxmed   = np.max(rpd01[0:12])
 rrdiff	 	= rpd01[13] - rmaxmed
 rmvdiff  	= rpd01[14] - rmaxmed
 rfdiff 	 	= rpd01[15] - rmaxmed
-ralldiff 	= np.array([rrdiff, rmvdiff, rfdiff])
+# ralldiff 	= np.array([rrdiff, rmvdiff, rfdiff])
 
 mm12       = "bb12/Billboard2012_MajMin_wcsrs.csv"
 mmpd       = np.genfromtxt(mm12, delimiter=' ')
@@ -37,7 +37,7 @@ mmmaxmed   = np.max(mmpd01[0:12])
 mmrdiff    = mmpd01[13] - mmmaxmed
 mmmvdiff   = mmpd01[14] - mmmaxmed
 mmfdiff    = mmpd01[15] - mmmaxmed
-mmalldiff  = np.array([mmrdiff, mmmvdiff, mmfdiff])
+# mmalldiff  = np.array([mmrdiff, mmmvdiff, mmfdiff])
 
 s12       = "bb12/Billboard2012_Sevth_wcsrs.csv"
 spd       = np.genfromtxt(s12, delimiter=' ')
@@ -46,7 +46,10 @@ smaxmed   = np.max(spd01[0:12])
 srdiff    = spd01[13] - smaxmed
 svdiff    = spd01[14] - smaxmed
 sfdiff    = spd01[15] - smaxmed
-salldiff  = np.array([srdiff, svdiff, sfdiff])
+# salldiff  = np.array([srdiff, svdiff, sfdiff])
+ralldiff   = np.array([rrdiff,   mmrdiff, srdiff])
+mmalldiff  = np.array([rmvdiff, mmmvdiff, svdiff])
+salldiff  = np.array([rfdiff,  mmfdiff, sfdiff])
 
 # 2013 results
 r13         = "bb13/Billboard2013_ROOT_wcsrs.csv"
@@ -56,7 +59,7 @@ rmaxmed13   = np.max(rpd0113[0:12])
 rrdiff13    = rpd0113[13] - rmaxmed13
 rmvdiff13   = rpd0113[14] - rmaxmed13
 rfdiff13    = rpd0113[15] - rmaxmed13
-ralldiff13  = np.array([rrdiff13, rmvdiff13, rfdiff13])
+# ralldiff13  = np.array([rrdiff13, rmvdiff13, rfdiff13])
 
 mm13         = "bb13/Billboard2013_MajMin_wcsrs.csv"
 mmpd13       = np.genfromtxt(mm13, delimiter=' ')
@@ -65,7 +68,7 @@ mmmaxmed13   = np.max(mmpd0113[0:12])
 mmrdiff13    = mmpd0113[13] - mmmaxmed13
 mmmvdiff13   = mmpd0113[14] - mmmaxmed13
 mmfdiff13    = mmpd0113[15] - mmmaxmed13
-mmalldiff13  = np.array([mmrdiff13, mmmvdiff13, mmfdiff13])
+# mmalldiff13  = np.array([mmrdiff13, mmmvdiff13, mmfdiff13])
 
 s13         = "bb13/Billboard2013_Sevth_wcsrs.csv"
 spd13       = np.genfromtxt(s13, delimiter=' ')
@@ -74,9 +77,14 @@ smaxmed13   = np.max(spd0113[0:12])
 srdiff13    = spd0113[13] - smaxmed13
 svdiff13    = spd0113[14] - smaxmed13
 sfdiff13    = spd0113[15] - smaxmed13
-salldiff13  = np.array([srdiff13, svdiff13, sfdiff13])
+# salldiff13  = np.array([srdiff13, svdiff13, sfdiff13])
 
-ball = ['R', 'MM', 'MM7']
+ralldiff13   = np.array([rrdiff13,   mmrdiff13, srdiff13])
+mmalldiff13  = np.array([rmvdiff13, mmmvdiff13, svdiff13])
+salldiff13  = np.array([rfdiff13,  mmfdiff13, sfdiff13])
+
+# ball = ['R', 'MM', 'MM7']
+ball = ['$\\textsc{rnd}$','$\\textsc{mv}$','$\\textsc{df}$']
 sns.set_style("whitegrid")
 sns.set_context("paper")
 plt.rc('text', usetex=True)
@@ -91,7 +99,8 @@ ax1 = f.add_subplot(gs1[0])
 ax2 = f.add_subplot(gs1[1])
 
 offset 		  = (1. / len(ball)) - 0.05
-barlabels   = ['','$\\textsc{rnd}$','','$\\textsc{mv}$','','$\\textsc{df}$']
+# barlabels   = ['','$\\textsc{rnd}$','','$\\textsc{mv}$','','$\\textsc{df}$']
+barlabels   = ['','$\\textsc{r}$','','$\\textsc{mm}$','','$\\textsc{mm\oldstylenums{7}}$']
 
 inx         = np.arange(0,len(ball))-offset
 print inx
@@ -125,7 +134,7 @@ ax1.set_yticks(np.arange(-12,6,1))
 ax2.set_ylim([-12,6])
 ax2.set_yticks(np.arange(-12,6,1))
 
-ax2.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=10, frameon=True)
+ax2.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=10, frameon=True, bbox_to_anchor=(1.15, 0))
 ax2.yaxis.set_major_formatter(plt.NullFormatter())
 
 # ax1.set_label('\\textcs{bb\oldstylenums{12}}')
