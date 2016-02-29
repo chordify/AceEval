@@ -134,3 +134,10 @@ def kw_nemenyi(groups, to_compare=None, alpha=0.05, method='tukey'):
     reject = p_corrected <= alpha
 
     return H, p_omnibus, p_corrected, reject
+
+
+year = str(12)
+inx  = [1,2,3,4,5,6,7,8,9,10,11,12,14,15,16]
+ral  = pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_ROOT.csv', sep='\t')
+h, po, pc, r = kw_nemenyi(ral[inx].as_matrix().T, to_compare=[(14,i) for i in np.arange(13,0,-1)])
+    
