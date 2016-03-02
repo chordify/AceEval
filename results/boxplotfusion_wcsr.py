@@ -104,12 +104,12 @@ barlabels   = ['','$\\textsc{r}$','','$\\textsc{mm}$','','$\\textsc{mm\oldstylen
 
 inx         = np.arange(0,len(ball))-offset
 print inx
-rbarp       = ax1.bar(inx,               ralldiff,    color=colors[3], width=offset, align='center')
+rbarp       = ax1.bar(inx,               ralldiff,    color=colors[4], width=offset, align='center', hatch='.')
 mmbarp      = ax1.bar(inx+offset,        mmalldiff,   color=colors[2], width=offset, align='center')
 sbarp       = ax1.bar(inx+offset+offset, salldiff,    color=colors[0], width=offset, align='center')
 ax1.set_xticklabels(barlabels, rotation='vertical')
 
-rbarp13     = ax2.bar(inx,               ralldiff13,  color=colors[3], width=offset, align='center')
+rbarp13     = ax2.bar(inx,               ralldiff13,  color=colors[4], width=offset, align='center', hatch='.')
 mmbarp13    = ax2.bar(inx+offset,        mmalldiff13, color=colors[2], width=offset, align='center')
 sbarp13     = ax2.bar(inx+offset+offset, salldiff13,  color=colors[0], width=offset, align='center')
 ax2.set_xticklabels(barlabels, rotation='vertical')
@@ -143,4 +143,6 @@ ax2.yaxis.set_major_formatter(plt.NullFormatter())
 sns.despine(left=True)
 gs1.tight_layout(f)
 gs1.update(wspace=0.05) # set the spacing between axes. 
-plt.show()
+# plt.show()
+plt.savefig('~/repos/ismir2016/paper/figs/bb1213rev.pdf')
+plt.close()
