@@ -226,6 +226,64 @@ fusionMirex msong cfront cback feval ev eveq sev dir s =
       writeSACSV (coll++"_"++sev++"_SA.csv") tms fSA
       return ()
 
+
+writeAlignments :: (Ord a, Show a) 
+              => Maybe SongID 
+              -- msong: ^ evaluates a specific SongID only, if set
+              -> ([ChordLabel] -> [a])
+              -> FilePath 
+              -- ^ Path to all files
+              -> NumData
+              -- ^ Sampling frequency
+              -> IO ()
+writeAlignments msong cfront dir s =
+   do putStrLn . show $ dir
+      let mtp t  = "Parsing submissions from team: " ++ show t ++ "\n"
+          -- | Evaluates the submission of a single team
+          doTeam tm = 
+            do putStr . mtp $ tm
+               tr <- getTeamFiles tm >>= parallel . map evaluateMChord 
+               return (tr)
+
+          -- | returns the files for one team
+          getTeamFiles :: Team -> IO [(Team, FilePath, FilePath)]
+          getTeamFiles tm = getCurDirectoryContents (dir </> tm)
+                        >>= return . map (\fp -> (tm, dir </> tm, fp)) . reverse
+
+          -- Evaluates a single file
+          evaluateMChord :: (Team, FilePath, FilePath) -> IO MChords
+          evaluateMChord (tm, dir, fp) = 
+            do mc <- readMChords Nothing (dir </> fp) 
+               if tm == team mc
+                  then return mc                                
+                  else error "evaluateMChord: teams don't match"
+      
+      -- without GT
+      tms <- getCurDirectoryContents dir 
+      ar <- mapM doTeam tms -- all results 
+      let arNoGT = filter (\mc -> team mc /= "Ground-truth") . concat $ ar
+      -- group from all teams by songID
+      let arS   = groupByIDs arNoGT
+      -- if msong is set, we only only evaluate one team, 
+      -- and otherwise we only ignore the "Ground-Truth" directory
+      let arS'  = case msong of
+                   Just s  -> filterMChordsID s arS
+                   Nothing -> arS
+      -- align per songID, i.e. sample every n seconds, and fuse
+      let garS  = map (sampleMChordsM s) arS'
+      mapM (writeSongAlignment cfront) garS
+      return ()
+
+writeSongAlignment :: (Show a) => ([ChordLabel] -> [a]) -> [MChords] -> IO ()
+writeSongAlignment cfront mc = do
+  let newrep = intercalate "\n" . map (intercalate "," . (map show) . cfront . dropTimed . chords) $ mc
+      sid    = show . songID . head $ mc
+      yr     = show . year . head $ mc
+      fn     = "alignments/" ++ yr ++ "/" ++ sid ++ ".aln"
+  putStrLn $ "Writing " ++ fn 
+  writeFile fn newrep
+
+
 writeSACSV :: FilePath -> [String] -> [[Double]] -> IO ()
 writeSACSV fp tms sas = writeFile fp ss where
   ss      = intercalate "\n" $ header : (lines sas)

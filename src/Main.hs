@@ -169,7 +169,7 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
                               tcsv tm  = show tm ++ ","
                               stdPp    = pVerb arg [overlapRatio, overlapDur]
                               sfreq    = 0.1
-                              --let (sfreq,fp) = (0.1,"/Users/hvkoops/repos/aceeval/algorithmic-output/2013/billboard2013")
+                              --  
                               in case getRequiredArg arg VocabularyMapping of
   "mirex2010" -> evaluateMirex (overlapEval mirex2010) reportAvgWOR r (Just tpf) stdPp h t fp
   "majMin"    -> evaluateMirex (overlapEval majMinEq) reportAvgWOR r (Just tpf) stdPp h t fp
@@ -185,6 +185,8 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   "fusionR"   -> fusionMirex Nothing chordLabelToInt      intPCtoChordLabel (overlapEval chordClassEq) eRoot    rootOnlyEq  "ROOT"      fp sfreq
   "fusionMM"  -> fusionMirex Nothing chordLabelToMajMin   id                (overlapEval chordClassEq) eMajMin  majMinEq    "MajMin"    fp sfreq
   "fusionS"   -> fusionMirex Nothing chordLabelToMajMinS  id                (overlapEval chordClassEq) eSevth   majMinSevEq "Sevth"     fp sfreq
+
+  "alignR"    -> writeAlignments Nothing chordLabelToInt fp sfreq
 
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
