@@ -23,8 +23,8 @@ import HarmTrace.Base.Chord  ( ChordLabel )
 import HarmTrace.Base.Parse  
 
 import Control.Monad         ( when )
-import Data.Maybe            ( isJust, fromJust )
-import Data.List             ( intercalate )
+import Data.Maybe            ( isJust, fromJust, mapMaybe )
+import Data.List             ( intercalate, elemIndex )
 import System.Directory      ( getDirectoryContents )
 import System.FilePath       ( (</>) )
 import System.IO             ( hPutStrLn, Handle )
@@ -274,16 +274,21 @@ writeAlignments msong cfront dir s =
       mapM (writeSongAlignment cfront) garS
       return ()
 
-writeSongAlignment :: (Show a) => ([ChordLabel] -> [a]) -> [MChords] -> IO ()
+writeSongAlignment :: (Show a, Eq a) => ([ChordLabel] -> [a]) -> [MChords] -> IO ()
 writeSongAlignment cfront mc = do
-  let newrep = intercalate "\n" . map (intercalate "," . (map show) . cfront . dropTimed . chords) $ mc
-      sid    = show . songID . head $ mc
-      yr     = show . year . head $ mc
-      fn     = "alignments/" ++ yr ++ "/" ++ sid ++ ".aln"
+  let newrep  = map (cfront . dropTimed . chords) $ mc
+      newrepi = map (indexRep cfront) newrep
+      newreps = intercalate "\n" . map (intercalate "," . (map show)) $ newrepi
+      sid     = show . songID . head $ mc
+      yr      = show . year . head $ mc
+      fn      = "alignments/" ++ yr ++ "/" ++ sid ++ ".aln"
   putStrLn $ "Writing " ++ fn 
-  writeFile fn newrep
+  writeFile fn newreps
 
-
+indexRep :: (Eq a) => ([ChordLabel] -> [a]) -> [a] -> [Int]
+indexRep cfront newrep = mapMaybe (`elemIndex` inx) newrep where
+  inx = nub . cfront $ allMMChords
+           
 writeSACSV :: FilePath -> [String] -> [[Double]] -> IO ()
 writeSACSV fp tms sas = writeFile fp ss where
   ss      = intercalate "\n" $ header : (lines sas)

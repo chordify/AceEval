@@ -185,8 +185,10 @@ pEvalFuncDir arg h t fp = let -- a function that we'll use for *not* aggregating
   "fusionR"   -> fusionMirex Nothing chordLabelToInt      intPCtoChordLabel (overlapEval chordClassEq) eRoot    rootOnlyEq  "ROOT"      fp sfreq
   "fusionMM"  -> fusionMirex Nothing chordLabelToMajMin   id                (overlapEval chordClassEq) eMajMin  majMinEq    "MajMin"    fp sfreq
   "fusionS"   -> fusionMirex Nothing chordLabelToMajMinS  id                (overlapEval chordClassEq) eSevth   majMinSevEq "Sevth"     fp sfreq
-
-  "alignR"    -> writeAlignments Nothing chordLabelToInt fp sfreq
+  -- output alignment files for correlation measurement:
+  "alignR"    -> writeAlignments Nothing chordLabelToInt     fp sfreq
+  "alignMM"   -> writeAlignments Nothing chordLabelToMajMin  fp sfreq
+  "alignS"    -> writeAlignments Nothing chordLabelToMajMinS fp sfreq
 
   m -> usageError arg ("unrecognised vocabulary mapping: " ++ m)   
   
