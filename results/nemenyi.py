@@ -4,7 +4,7 @@ from itertools import combinations
 from statsmodels.stats.multitest import multipletests
 from statsmodels.stats.libqsturng import psturng
 import warnings
-
+import pandas as pd
 
 def kw_nemenyi(groups, to_compare=None, alpha=0.05, method='tukey'):
     """
@@ -138,6 +138,24 @@ def kw_nemenyi(groups, to_compare=None, alpha=0.05, method='tukey'):
 
 year = str(12)
 inx  = [1,2,3,4,5,6,7,8,9,10,11,12,14,15,16]
+comparecols = np.arange(12,0,-1)
 ral  = pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_ROOT.csv', sep='\t')
-h, po, pc, r = kw_nemenyi(ral[inx].as_matrix().T, to_compare=[(14,i) for i in np.arange(13,0,-1)])
-    
+cols = ral.columns.values[comparecols]
+h, po, pc, r = kw_nemenyi(ral[inx].as_matrix().T, to_compare=[(14,i) for i in comparecols])
+
+print "roots:"
+print [(a,b) for (a,b) in zip(cols,r) if b == False]
+
+ral  = pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_MajMin.csv', sep='\t')
+cols = ral.columns.values[comparecols]
+h, po, pc, r = kw_nemenyi(ral[inx].as_matrix().T, to_compare=[(14,i) for i in comparecols])
+
+print "mm:"
+print [(a,b) for (a,b) in zip(cols,r) if b == False]
+
+ral  = pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_Sevth.csv', sep='\t')
+cols = ral.columns.values[comparecols]
+h, po, pc, r = kw_nemenyi(ral[inx].as_matrix().T, to_compare=[(14,i) for i in comparecols])
+
+print "mm7:"
+print [(a,b) for (a,b) in zip(cols,r) if b == False]
