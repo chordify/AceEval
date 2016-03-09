@@ -110,10 +110,10 @@ year  		= str(13)
 files13   	= bb13mm.keys()
 methods13 	= bb13mm[files13[0]].keys()
 # other methods
-mmal13  		= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_ROOT.csv', sep='\t')
+mmal13  		= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_MajMin.csv', sep='\t')
 mmalc13 		= mmal13.columns.values
 # source accuracies
-mmsa13 		= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_ROOT_SA.csv', sep='\t')
+mmsa13 		= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_MajMin_SA.csv', sep='\t')
 mminx13 		= mmsa13.columns.values[0:-2]
 
 print "year : " + str(year)
@@ -140,11 +140,11 @@ year  		= str(12)
 files12   	= bb12mms.keys()
 methods12 	= bb12mms[files12[0]].keys()
 # other methods
-mmal12  	= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_MajMin.csv', sep='\t')
+mmal12  	= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_Sevth.csv', sep='\t')
 mmalc12 	= mmal12.columns.values
 flines      = bb12mms[files12[0]][methods12[0]].keys()
 # source accuracies
-msa12 		= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_MajMin_SA.csv', sep='\t')
+msa12 		= pd.read_csv('/Users/hvkoops/repos/aceeval/results/bb' + year + '/Billboard20' + year + '_Sevth_SA.csv', sep='\t')
 minx12 		= msa12.columns.values[0:-2]
 
 allcorr12 	= []
@@ -191,3 +191,12 @@ print "method: source accuracy correlation: " + str(satt13)
 allcorr13 = allcorr13 + [satt13[0]]
 allp13 = allp13 + [satt13[1]]
 
+
+
+# (1-((ral12[inx].std()/ral12[inx].mean())['FUSION']/(ral12[inx].std()/ral12[inx].mean())[ral12[inx[:-3]].median().idxmax()]))*100
+# (1-((ral12[inx].std()/ral12[inx].mean())['MVOTE']/(ral12[inx].std()/ral12[inx].mean())[ral12[inx[:-3]].median().idxmax()]))*100
+# (1-((ral12[inx].std()/ral12[inx].mean())['RANDOM']/(ral12[inx].std()/ral12[inx].mean())[ral12[inx[:-3]].median().idxmax()]))*100
+
+# (1-((ds[inx].std()/ds[inx].mean())['FUSION']/(ds[inx].std()/ds[inx].mean())[ds[inx[:-3]].median().idxmax()]))*100
+# (1-((ds[inx].std()/ds[inx].mean())['RANDOM']/(ds[inx].std()/ds[inx].mean())[ds[inx[:-3]].median().idxmax()]))*100
+# (1-((ds[inx].std()/ds[inx].mean())['MVOTE']/(ds[inx].std()/ds[inx].mean())[ds[inx[:-3]].median().idxmax()]))*100
