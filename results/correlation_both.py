@@ -87,6 +87,8 @@ ax2.yaxis.set_major_formatter(plt.NullFormatter())
 ax1.set_xlabel('WCSR',fontsize=fontsize)
 ax2.set_xlabel('WCSR',fontsize=fontsize)
 ax1.set_ylabel('\\textsc{df} Source Accuracy',fontsize=fontsize)
+ax1.set_title('\\textsc{bb12}',fontsize=fontsize)
+ax2.set_title('\\textsc{bb13}',fontsize=fontsize)
 
 gs1.tight_layout(f)
 gs1.update(wspace=0.02, hspace=0) # set the spacing between axes. 

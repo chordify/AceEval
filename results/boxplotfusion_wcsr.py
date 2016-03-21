@@ -124,25 +124,27 @@ print allvals12
 allvals13 = np.concatenate([ralldiff13, mmalldiff13, salldiff13])
 print allvals13
 
-fontsize = 13
+fontsize = 15
 ax1.tick_params(labelsize=fontsize)
 ax2.tick_params(labelsize=fontsize)
 ax1.set_ylabel("\\textsc{wcsr} difference with best team",fontsize=fontsize)
+ax1.set_title('\\textsc{bb12}',fontsize=fontsize)
 
 ax1.set_ylim([-12,6])
-ax1.set_yticks(np.arange(-12,6,1))
+ax1.set_yticks(np.arange(-12,7,1))
 ax2.set_ylim([-12,6])
-ax2.set_yticks(np.arange(-12,6,1))
+ax2.set_yticks(np.arange(-12,7,1))
+ax2.set_title('\\textsc{bb13}',fontsize=fontsize)
 
-ax2.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=10, frameon=True, bbox_to_anchor=(1.15, 0))
+ax2.legend((rbarp[0], mmbarp[0], sbarp[0]), (ball), loc=4,fontsize=fontsize, frameon=True, bbox_to_anchor=(1.22, 0))
 ax2.yaxis.set_major_formatter(plt.NullFormatter())
 
 # ax1.set_label('\\textcs{bb\oldstylenums{12}}')
 # ax2.set_label('\\textcs{bb\oldstylenums{13}}')
 
 sns.despine(left=True)
+gs1.update(wspace=0.03) # set the spacing between axes. 
 gs1.tight_layout(f)
-gs1.update(wspace=0.05) # set the spacing between axes. 
 # plt.show()
-plt.savefig('~/repos/ismir2016/paper/figs/bb1213rev.pdf')
+plt.savefig('/Users/hvkoops/repos/ismir2016/paper/figs/bb1213rev.pdf')
 plt.close()
