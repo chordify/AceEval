@@ -191,12 +191,3 @@ print "method: source accuracy correlation: " + str(satt13)
 allcorr13 = allcorr13 + [satt13[0]]
 allp13 = allp13 + [satt13[1]]
 
-
-
-# (1-((ral12[inx].std()/ral12[inx].mean())['FUSION']/(ral12[inx].std()/ral12[inx].mean())[ral12[inx[:-3]].median().idxmax()]))*100
-# (1-((ral12[inx].std()/ral12[inx].mean())['MVOTE']/(ral12[inx].std()/ral12[inx].mean())[ral12[inx[:-3]].median().idxmax()]))*100
-# (1-((ral12[inx].std()/ral12[inx].mean())['RANDOM']/(ral12[inx].std()/ral12[inx].mean())[ral12[inx[:-3]].median().idxmax()]))*100
-
-# (1-((ds[inx].std()/ds[inx].mean())['FUSION']/(ds[inx].std()/ds[inx].mean())[ds[inx[:-3]].median().idxmax()]))*100
-# (1-((ds[inx].std()/ds[inx].mean())['RANDOM']/(ds[inx].std()/ds[inx].mean())[ds[inx[:-3]].median().idxmax()]))*100
-# (1-((ds[inx].std()/ds[inx].mean())['MVOTE']/(ds[inx].std()/ds[inx].mean())[ds[inx[:-3]].median().idxmax()]))*100

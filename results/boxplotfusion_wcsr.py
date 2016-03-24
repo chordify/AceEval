@@ -29,6 +29,12 @@ rrdiff	 	= rpd01[13] - rmaxmed
 rmvdiff  	= rpd01[14] - rmaxmed
 rfdiff 	 	= rpd01[15] - rmaxmed
 # ralldiff 	= np.array([rrdiff, rmvdiff, rfdiff])
+r12v      = "bb12/Billboard2012_ROOT.csv"
+rpv       = pd.read_csv(r12v, sep='\t')
+rrstd     = rpv['RANDOM'].std()
+rmvstd    = rpv['MVOTE'].std()
+rfstd     = rpv['FUSION'].std()
+rstds     = [rrstd, rmvstd, rfstd]
 
 mm12       = "bb12/Billboard2012_MajMin_wcsrs.csv"
 mmpd       = np.genfromtxt(mm12, delimiter=' ')
@@ -38,6 +44,12 @@ mmrdiff    = mmpd01[13] - mmmaxmed
 mmmvdiff   = mmpd01[14] - mmmaxmed
 mmfdiff    = mmpd01[15] - mmmaxmed
 # mmalldiff  = np.array([mmrdiff, mmmvdiff, mmfdiff])
+r12v      = "bb12/Billboard2012_MajMin.csv"
+mmpv       = pd.read_csv(r12v, sep='\t')
+mmrstd     = mmpv['RANDOM'].std()
+mmmvstd    = mmpv['MVOTE'].std()
+mmfstd     = mmpv['FUSION'].std()
+mmstds     = [mmrstd, mmmvstd, mmfstd]
 
 s12       = "bb12/Billboard2012_Sevth_wcsrs.csv"
 spd       = np.genfromtxt(s12, delimiter=' ')
@@ -103,7 +115,6 @@ offset 		  = (1. / len(ball)) - 0.05
 barlabels   = ['','$\\textsc{r}$','','$\\textsc{mm}$','','$\\textsc{mm\oldstylenums{7}}$']
 
 inx         = np.arange(0,len(ball))-offset
-print inx
 rbarp       = ax1.bar(inx,               ralldiff,    color=colors[4], width=offset, align='center', hatch='.')
 mmbarp      = ax1.bar(inx+offset,        mmalldiff,   color=colors[2], width=offset, align='center')
 sbarp       = ax1.bar(inx+offset+offset, salldiff,    color=colors[0], width=offset, align='center')
@@ -145,6 +156,6 @@ ax2.yaxis.set_major_formatter(plt.NullFormatter())
 sns.despine(left=True)
 gs1.update(wspace=0.03) # set the spacing between axes. 
 gs1.tight_layout(f)
-# plt.show()
-plt.savefig('/Users/hvkoops/repos/ismir2016/paper/figs/bb1213rev.pdf')
+plt.show()
+# plt.savefig('/Users/hvkoops/repos/ismir2016/paper/figs/bb1213rev.pdf')
 plt.close()
