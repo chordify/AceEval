@@ -89,7 +89,7 @@ main = do arg <- parseArgsIO ArgsComplete myArgs
           mh <- pErrStr arg
 
           case fileOrDir arg of
-            Left  f ->    readMChords mh f >>= pEvalFuncFile arg mh
+            Left  f ->    readMChords mh f >>= pEvalFuncFile arg
             Right d -> do t <- pTeam arg d y c
                           (pEvalFuncDir arg) mh t (d </> show y </> show c)
 
@@ -135,8 +135,7 @@ pYear arg = case toYear $ getRequiredArg arg MirexYear of
               (Just y , _) -> y
               (Nothing, e) -> usageError arg e
 
-pEvalFuncFile :: Args MirexArgs
-             -> Maybe Handle ->  MChords -> IO ()
+pEvalFuncFile :: Args MirexArgs ->  MChords -> IO ()
 pEvalFuncFile arg =
   case (getRequiredArg arg VocabularyMapping, gotArg arg Print) of
     ("mirex2010", True ) -> evaluateMChordsVerb (printOverlapEval mirex2010) overlapRatio

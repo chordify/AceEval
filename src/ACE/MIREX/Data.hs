@@ -20,7 +20,7 @@ import Data.List               ( intercalate )
 import Data.Char               ( toLower )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), splitDirectories, joinPath
-                               , takeExtension, dropExtension )
+                               , takeExtension, dropExtensions )
 
 data Format     = JS | LAB deriving (Show, Eq)
 data Collection = Billboard2012 | Billboard2013 | Beatles
@@ -33,6 +33,7 @@ instance Show Year where
   show Y2011 = "2011"
   show Y2012 = "2012"
   show Y2013 = "2013"
+  show Other = "Other"
 
 data MChords    = MChords { collection  :: Collection
                           , year        :: Year
@@ -44,11 +45,6 @@ data MChords    = MChords { collection  :: Collection
 
 instance Show MChords where
   show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
-
-
-fromTwoFiles :: Maybe Collection -> Maybe Year -> Team
-             -> FilePath -> FilePath -> MChords
-fromTwoFiles = undefined
 
 fromFileName :: FilePath -> (FilePath, Year, Collection, Team, Int, Format)
 fromFileName fp = case reverse . splitDirectories $ fp of
@@ -64,7 +60,7 @@ fromFileName fp = case reverse . splitDirectories $ fp of
 -- Parses: chordmrx09000008.js, chords1234.js, audio1234.lab, 3456.lab
 getId :: String -> Int
 -- getId s = read . dropWhile (not . isDigit) . dropExtension $ s
-getId s = read . reverse . take 4 . reverse . dropExtension $ s
+getId s = read . reverse . take 4 . reverse . dropExtensions $ s
 
 toCollection :: String -> (Maybe Collection, String)
 toCollection s = case map toLower s of
@@ -88,15 +84,13 @@ toFormat :: String -> (Maybe Format, String)
 toFormat s = case s of
               ".js"  -> (Just JS , [])
               ".lab" -> (Just LAB, [])
+              ".txt" -> (Just LAB, [])
               _      -> (Nothing , "unrecognised extension: " ++ s )
 
 errorise :: (Maybe a, String) -> a
 errorise (Just a,  _) = a
 errorise (Nothing, e) = error e
 
--- toLabGT :: FilePath -> FilePath
--- toLabGT fp = let (base, y, c, t, i, f) = fromFileName fp
-             -- in toFileName base y c "Ground-truth" i f
 
 toFileName :: FilePath -> Year -> Collection -> Team -> Int -> Format
            -> FilePath
@@ -109,3 +103,4 @@ toFileName dir y c t i f = dir </> show y </> show c </> t </> toID where
            (JS,  Billboard2012) -> printf "%04d.js" i
            (JS,  Billboard2013) -> printf "%04d.js" i
            (LAB, _            ) -> printf "%04d.lab" i
+           _                    -> error "toID: filetype or collection mismatch"

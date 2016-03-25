@@ -16,10 +16,9 @@ import ACE.Evaluation
 import HarmTrace.Base.Time   ( Timed (..) )
 import HarmTrace.Base.Chord  ( ChordLabel )
 import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
-
+import Data.List             ( intercalate )
 import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
-import Data.List             ( intercalate )
 import System.Directory      ( getDirectoryContents )
 import System.FilePath       ( (</>) )
 import System.IO             ( hPutStrLn, Handle )
@@ -33,12 +32,10 @@ evaluateMChords :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> a)
                    -- ^ a function that evaluates a song
                 -> (a -> b)
                    -- ^ a possible Handle for routing the error messages
-                -> Maybe Handle
-                   -- ^ a function post-processes a evaluation result
                 -> MChords
                    -- ^ the input file
                 -> IO ()
-evaluateMChords ef pp mh mc =
+evaluateMChords ef pp mc =
   do putStr (show mc ++ ": ")
      print . evaluate (\a b -> pp $ ef a b) $ mc
 
@@ -46,12 +43,10 @@ evaluateMChordsVerb :: Show b => ([Timed RefLab] -> [Timed ChordLabel] -> IO a)
                    -- ^ a function that evaluates a song
                 -> (a -> b)
                    -- ^ a function post-processes a evaluation result
-                -> Maybe Handle
-                   -- ^ a possible Handle for routing the error messages
                 -> MChords
                    -- ^ the input file
                 -> IO ()
-evaluateMChordsVerb ef pp mh mc =
+evaluateMChordsVerb ef pp mc =
   do putStrLn (show mc ++ ": ")
      evaluate (\a b -> ef a b >>= return . pp) mc >>= print
 
@@ -117,23 +112,40 @@ evaluateMirex ef af atf mtp mpp mh mteam dir =
 readMChords :: Maybe Handle -> FilePath -> IO MChords
 readMChords mh fp =
   do let (b,y,c,tm,i,f) = fromFileName fp
-     t <- readFile fp
 
      case f of
-       JS  ->    printPPLog mh show (preProcess . parseChords (pChordJSON y c)) t
-       LAB -> do let pGT :: Parser MChords
-                     pGT = pGroundTruth (parseChords (pLabMChords tm i y c) t)
-                 gt  <- readFile (toFileName b y c "Ground-truth" i f)
-                 printPPLog mh show (preProcess . parseChords pGT) gt
+       JS  ->     readFile fp
+              >>= printPPLog mh show (preProcess . parseChords (pChordJSON y c))
+       LAB ->     readMChords' mh (Just y) (Just c) tm i
+                              (toFileName b y c "Ground-truth" i f) fp
 
--- readChords :: Maybe Handle -> FilePath -> IO [Timed ChordLabel]
--- readChords = undefined
+-- | A more general variant of 'readMChords' that gathers information,
+-- reads MIREX style chords file and a groundtruth file and returns an
+-- 'MChords'
+readMChords' :: Maybe Handle
+                -- ^ a possible Handle for routing the error messages
+             -> Maybe Year
+                -- ^ a possible MIREX 'Year'
+             -> Maybe Collection
+                -- ^ a possible MIREX 'Collection'
+             -> Team
+                -- ^ a team description
+             -> Int
+                -- ^ a song ID
+              -> FilePath
+                -- ^ a GROUNDTRUTH file in 'LAB' format
+              -> FilePath
+                -- ^ a file to be wrapped and evaluated in 'LAB' format
+              -> IO MChords
+                -- ^ 'MChords' wrapper to be evaluated
+readMChords' mh y c tm i gtfp fp =
+  do cs <- readFile fp
 
-parseChords :: Parser MChords -> String -> MChords
-parseChords pf txt = case parseDataWithErrors pf txt of
-       (mc, []) -> mc
-       (_ , e ) -> error ("parse errors:\n" ++(intercalate "\n" . map show $ e))
+     let pGT :: Parser MChords
+         pGT = pGroundTruth (parseChords (pLabMChords tm i y c) cs)
 
+     gt  <- readFile gtfp
+     printPPLog mh show (preProcess . parseChords pGT) gt
 
 -- | Applies an evaluation function to an 'MChords'
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
