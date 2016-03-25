@@ -4,6 +4,7 @@
 module ACE.MIREX.IO  ( evaluateMChords
                      , evaluateMChordsVerb
                      , evaluateMirex
+                     , readMChords'
                      , readMChords
                      ) where
 
