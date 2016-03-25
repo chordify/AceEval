@@ -13,7 +13,7 @@ module ACE.MIREX.Data  ( Collection (..)
                        , errorise
                        -- , mChordStats
                        ) where
-                 
+
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
 import Data.List               ( intercalate )
@@ -23,8 +23,9 @@ import System.FilePath         ( (</>), splitDirectories, joinPath
                                , takeExtension, dropExtension )
 
 data Format     = JS | LAB deriving (Show, Eq)
-data Collection = Billboard2012 | Billboard2013 | Beatles   deriving (Show, Eq)
-data Year       = Y2010 | Y2011 | Y2012 | Y2013
+data Collection = Billboard2012 | Billboard2013 | Beatles
+                | Unkown  deriving (Show, Eq)
+data Year       = Y2010 | Y2011 | Y2012 | Y2013 | Other
 type Team       = String
 
 instance Show Year where
@@ -32,21 +33,23 @@ instance Show Year where
   show Y2011 = "2011"
   show Y2012 = "2012"
   show Y2013 = "2013"
-  
+
 data MChords    = MChords { collection  :: Collection
                           , year        :: Year
                           , team        :: String
                           , songID      :: Int
                           , chords      :: [Timed ChordLabel]
                           , groundTruth :: Maybe [Timed ChordLabel]
-                          }  
-                          
+                          }
+
 instance Show MChords where
   show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
 
--- getFormat :: FilePath -> Format
--- getFormat fp = let (b,y,c,t,i,f) = fromFileName fp in f
-  
+
+fromTwoFiles :: Maybe Collection -> Maybe Year -> Team
+             -> FilePath -> FilePath -> MChords
+fromTwoFiles = undefined
+
 fromFileName :: FilePath -> (FilePath, Year, Collection, Team, Int, Format)
 fromFileName fp = case reverse . splitDirectories $ fp of
         (fn : tm : c : y : base) -> ( joinPath (reverse base)
@@ -89,13 +92,13 @@ toFormat s = case s of
 
 errorise :: (Maybe a, String) -> a
 errorise (Just a,  _) = a
-errorise (Nothing, e) = error e 
+errorise (Nothing, e) = error e
 
 -- toLabGT :: FilePath -> FilePath
 -- toLabGT fp = let (base, y, c, t, i, f) = fromFileName fp
              -- in toFileName base y c "Ground-truth" i f
-                    
-toFileName :: FilePath -> Year -> Collection -> Team -> Int -> Format 
+
+toFileName :: FilePath -> Year -> Collection -> Team -> Int -> Format
            -> FilePath
 toFileName dir y c t i f = dir </> show y </> show c </> t </> toID where
 

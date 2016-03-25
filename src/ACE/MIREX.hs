@@ -7,5 +7,3 @@ module ACE.MIREX (
 import ACE.MIREX.Data
 import ACE.MIREX.IO
 import ACE.MIREX.PreProcessing
-
-

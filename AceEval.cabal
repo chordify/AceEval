@@ -1,7 +1,7 @@
 name:                AceEval
-version:             0.1.0.1
+version:             0.2.0.0
 synopsis:            Automatic Chord Extraction Evaluation
--- description:         
+-- description:
 license:             LGPL-3
 license-file:        LICENSE
 author:              W. Bas de Haas
@@ -11,65 +11,65 @@ category:            Music
 build-type:          Simple
 cabal-version:       >=1.8
 
-library 
-  build-depends:       base >=4.8, 
+library
+  build-depends:       base >=4.8,
                        parseargs >=0.1,
                        HarmTrace-Base ==1.4.1.0,
-                       directory >=1.2, 
+                       directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
                        parallel-io >= 0.3.3,
                        containers >= 0.5.0.0
-  
-  hs-source-dirs:      src  
-  
+
+  hs-source-dirs:      src
+
   exposed-modules:     ACE.Evaluation
                        ACE.Evaluation.ChordClass
                        ACE.Evaluation.ChordEq
                        ACE.Evaluation.EqIgnore
                        ACE.Evaluation.Func
                        ACE.Evaluation.Segmentation
-                       
+
                        ACE.MIREX
                        ACE.MIREX.Data
                        ACE.MIREX.IO
                        ACE.MIREX.PreProcessing
-                       
+
                        ACE.Parsers.ChordJSON
                        ACE.Parsers.ChordLab
-                       
-  
+
+
   ghc-options:         -Wall
-                       -O2 
+                       -O2
 
 executable AceEval
   main-is:             Main.hs
-  -- other-modules:       
-  build-depends:       base >=4.8, 
+  -- other-modules:
+  build-depends:       base >=4.8,
                        parseargs >=0.1,
                        HarmTrace-Base ==1.4.1.0,
-                       directory >=1.2, 
+                       directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
                        parallel-io >= 0.3.3,
                        containers >= 0.5.0.0
-  
-  hs-source-dirs:      src  
-  
+
+  hs-source-dirs:      src
+
   ghc-options:         -Wall -O2 -rtsopts -threaded
-  
+
 executable AceEvalTest
   main-is:             Test.hs
-  -- other-modules:       
-  build-depends:       base >=4.8, 
+  -- other-modules:
+  build-depends:       base >=4.8,
                        parseargs >=0.1,
                        HarmTrace-Base ==1.4.1.0,
-                       directory >=1.2, 
+                       directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
                        parallel-io >= 0.3.3,
                        containers >= 0.5.0.0
-  
-  hs-source-dirs:      src  
-  
+
+  hs-source-dirs:      src
+
   ghc-options:         -Wall -O2 -rtsopts
