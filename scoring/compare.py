@@ -35,11 +35,15 @@ for m in methods12:
 	gt12  = np.asarray(ral12[ralc12[1:-4]]).reshape(-1)
 	rtt	  = stats.spearmanr(gt12, all12)
 	print "method: " + m + " correlation: " + str(rtt)
+	rtt	  = stats.pearsonr(gt12, all12)	
+	print "method: " + m + " correlation: " + str(rtt)	
 	# slope, intercept, r_value, p_value, std_err = stats.linregress(gt12,all12)
 	# print "method: " + m + " linear reg:  " + str(r_value**2)
 	allcorr12 = allcorr12 + [rtt[0]]
 	allp12 = allp12 + [rtt[1]]
 satt12		= stats.spearmanr(gt12, np.asarray(rsa12[rinx12]).reshape(-1))
+print "method: source accuracy correlation: " + str(satt12)
+satt12		= stats.pearsonr(gt12, np.asarray(rsa12[rinx12]).reshape(-1))
 print "method: source accuracy correlation: " + str(satt12)
 allcorr12 = allcorr12 + [satt12[0]]
 allp12 = allp12 + [satt12[1]]
@@ -62,11 +66,15 @@ for m in methods12:
 	gt13   = np.asarray(ral13[ralc13[1:-4]]).reshape(-1)
 	rtt	  = stats.spearmanr(gt13, all13)	
 	print "method: " + m + " correlation: " + str(rtt)	
+	rtt	  = stats.pearsonr(gt13, all13)	
+	print "method: " + m + " correlation: " + str(rtt)	
 	# slope, intercept, r_value, p_value, std_err = stats.linregress(gt13,all13)
 	# print "method: " + m + " linear reg:  " + str(r_value**2)
 	allcorr13 = allcorr13 + [rtt[0]]
 	allp13 = allp13 + [rtt[1]]
 satt13	= stats.spearmanr(gt13, np.asarray(rsa13[rinx13]).reshape(-1))
+print "method: source accuracy correlation: " + str(satt13)
+satt13		= stats.pearsonr(gt13, np.asarray(rsa13[rinx13]).reshape(-1))
 print "method: source accuracy correlation: " + str(satt13)
 allcorr13 = allcorr13 + [satt13[0]]
 allp13 = allp13 + [satt13[1]]
