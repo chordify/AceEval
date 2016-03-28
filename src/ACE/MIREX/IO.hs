@@ -151,7 +151,7 @@ readMChords' mh y c tm i gtfp fp =
 -- | Applies an evaluation function to an 'MChords'
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
 evaluate ef mc = case groundTruth mc of
-  (Just gt) -> ef (makeGT gt) (chords mc)
+  (Just gt) -> ef gt (chords mc)
   _   -> error "evaluate: I did not find a ground-truth and chord prediction"
 
 --------------------------------------------------------------------------------

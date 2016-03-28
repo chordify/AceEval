@@ -4,9 +4,10 @@
 module ACE.Parsers.ChordJSON         ( pChordJSON )where
 
 import ACE.MIREX.Data
+import ACE.Evaluation.ChordEq        ( makeGT )
 import HarmTrace.Base.Time           ( Timed (..), BeatTime (..) )
-import HarmTrace.Base.Chord          
-import HarmTrace.Base.Parse          
+import HarmTrace.Base.Chord
+import HarmTrace.Base.Parse
 
 --------------------------------------------------------------------------------
 -- Parsing ChordJSON into HarmTrace chords
@@ -15,9 +16,9 @@ import HarmTrace.Base.Parse
 -- | Parses a MIREX results file
 pChordJSON :: Year -> Collection -> Parser MChords
 pChordJSON y c'' = f <$> pHeader <*> pChordsPair <*> pFooter
-  where f (s, c, i) (gt,pd) (s', c', i', ["Ground-truth","Prediction"]) 
+  where f (s, c, i) (gt,pd) (s', c', i', ["Ground-truth","Prediction"])
           | s == s' && c == c' && i == i' && c == c''
-                      = MChords c y s i pd (Just gt)
+                      = MChords c y s i pd (Just . makeGT $ gt)
           | otherwise = error "pChordJSON: conflicting meta data"
         f _  _  _     = error "pChordJSON: invalid MIREX Ace data"
 
@@ -26,9 +27,9 @@ pChordJSON y c'' = f <$> pHeader <*> pChordsPair <*> pFooter
 pHeader :: Parser (String, Collection, Int)
 pHeader = pVar "data" <?> "header"
 
--- A footer containing "; \n var another_name = ["some","descriptions"]; 
+-- A footer containing "; \n var another_name = ["some","descriptions"];
 pFooter :: Parser (String, Collection, Int, [String])
-pFooter = g <$> (lexeme (pSym ';') *> pVar "seriesNames") 
+pFooter = g <$> (lexeme (pSym ';') *> pVar "seriesNames")
             <*>  pJSList pQuotedString
             <*   lexeme (pSym ';')
             <?>  "footer"
@@ -52,7 +53,7 @@ pTeam = snoc <$> pBetween 1 4 pLetter <*> pDigit  <?> "team" where
 pChordsPair :: Parser ([Timed ChordLabel],[Timed ChordLabel])
 pChordsPair = pBrackets ((,) <$> pChordList True <* pComma -- groundTruth
                              <*> pChordList False )        -- prediction
-  
+
 -- | parsers a single chords list
 pChordList :: Bool -> Parser [Timed ChordLabel]
 pChordList isGT = pJSList . pBraces $ pTimedChord isGT
@@ -62,42 +63,41 @@ pTimedChord :: Bool -> Parser (Timed ChordLabel)
 pTimedChord isGT = timedData <$> (pString "o: "     *> pDoubleRaw)
                              <*> (pString ", f: "   *> pDoubleRaw)
                              <*> (pString ", l: \"" *> pMIREXChord isGT )
-                             <*   pString "\", a: " <* (pSym '0' <|> pSym '1') 
+                             <*   pString "\", a: " <* (pSym '0' <|> pSym '1')
                              <?> "Onset, offset and chord" where
-                             
+
                              timedData on off c = Timed c [Time on, Time off]
 
-                        
-                        
+
+
 pMIREXChord :: Bool -> Parser ChordLabel
 pMIREXChord isGT = fixChord <$> pChord where
-  
-  {- Fixes a bug in the NEMA framework. 
-     As Johan pauwels explains in an email (10/10/2013): 
+
+  {- Fixes a bug in the NEMA framework.
+     As Johan pauwels explains in an email (10/10/2013):
      I'm pretty sure there is a bug somewhere in the NEMA framework that somehow
      converts some "N" symbols to "F#:7sus4", just by switching representations.
-     I don't know when exactly it happens (obviously it doesn't do it for all 
-     "N"s), but it has been there since forever (aka 2010). 
+     I don't know when exactly it happens (obviously it doesn't do it for all
+     "N"s), but it has been there since forever (aka 2010).
 
-     Actually, that conversion script has been virtually unchanged since 2010 
+     Actually, that conversion script has been virtually unchanged since 2010
      (it has been coded in an Utrecht auditorium). Back then, it was an easy and
      safe workaround because I knew that none of the estimation algorithms could
-     even generate 7sus4 chords. Only the ground-truth had proper 7sus4 chords 
-     in it, but luckily not the conversion of N symbols, so that's why there's 
-     that if clause. I haven't verified with the new algorithms, but I suspect 
-     that they still cannot generate 7sus4, so the assumption probably still 
-     holds and this conversion can still be done safely. It only didn't work 
-     for that famous example were Bristol just outputted the exact annotations 
-     after some sort of elementary fingerprinting, but I took care of that 
+     even generate 7sus4 chords. Only the ground-truth had proper 7sus4 chords
+     in it, but luckily not the conversion of N symbols, so that's why there's
+     that if clause. I haven't verified with the new algorithms, but I suspect
+     that they still cannot generate 7sus4, so the assumption probably still
+     holds and this conversion can still be done safely. It only didn't work
+     for that famous example were Bristol just outputted the exact annotations
+     after some sort of elementary fingerprinting, but I took care of that
      manually (and that result was useless anyway). -}
-  
+
     fixChord :: ChordLabel -> ChordLabel
     fixChord c@(Chord (Note Sh F) SevSus4 _ _) | isGT      = c
                                                | otherwise = NoChord
     fixChord c                                             = c
-                        
+
 -- replace by listparser?
 -- Parsers a typical javascript list: [elem, elem, etc.]
 pJSList :: ParserTrafo a [a]
 pJSList p = pBrackets . pList1Sep_ng pComma $ p
-

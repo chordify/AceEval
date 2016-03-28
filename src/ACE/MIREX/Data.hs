@@ -16,7 +16,7 @@ module ACE.MIREX.Data  ( Collection (..)
 
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
--- import ACE.Evaluation.ChordEq  ( makeGT, RefLab )
+import ACE.Evaluation.ChordEq  ( RefLab )
 import Data.Char               ( toLower )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), splitDirectories, joinPath
@@ -40,7 +40,7 @@ data MChords    = MChords { collection  :: Collection
                           , team        :: String
                           , songID      :: Int
                           , chords      :: [Timed ChordLabel]
-                          , groundTruth :: Maybe [Timed ChordLabel]
+                          , groundTruth :: Maybe [Timed RefLab]
                           }
 
 instance Show MChords where

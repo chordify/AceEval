@@ -4,14 +4,15 @@ module ACE.MIREX.PreProcessing ( Edit
                                ) where
 
 import ACE.MIREX.Data
+import ACE.Evaluation.ChordEq  ( refLab, makeGT )
 
-import HarmTrace.Base.Time   ( Timed (..), splitTimed, getEndTime
-                             , offset, onset, duration, timed, concatTimed )
-import HarmTrace.Base.Chord  ( ChordLabel, Chord (..) )
-import Control.Monad.State   ( State, modify, runState )
-import Data.List             ( partition, intercalate )
-import Data.Maybe            ( fromJust )
-import Data.Foldable         ( foldrM )
+import HarmTrace.Base.Time     ( Timed (..), splitTimed, getEndTime, setData
+                               , offset, onset, duration, timed, concatTimed )
+import HarmTrace.Base.Chord    ( ChordLabel, Chord (..) )
+import Control.Monad.State     ( State, modify, runState )
+import Data.List               ( partition, intercalate )
+import Data.Maybe              ( fromJust )
+import Data.Foldable           ( foldrM )
 
 --------------------------------------------------------------------------------
 -- Error messages
@@ -45,8 +46,8 @@ data PPLog = PPLog Edit Collection Year String Int Source Double Double
 
 instance Show PPLog where
   show (PPLog e c y t i src on off) =
-    (show e ++ intercalate " " [show c, show y, t, show i]
-            ++ show src ++ ": " ++ show on ++ " - " ++ show off)
+    show e ++ intercalate " " [show c, show y, t, show i]
+           ++ show src ++ ": " ++ show on ++ " - " ++ show off
 
   showList l s = s ++ intercalate "\n" (map show l)
 
@@ -69,7 +70,8 @@ preProcess m = runState (preProcess' m) []
 -- chord sequence, if any.
 preProcess' :: MChords -> State [PPLog] MChords
 preProcess' mc = do c  <- process Pred . chords $ mc
-                    gt <- maybeState (process Gt) . groundTruth $ mc
+                    gt <- maybeState ( fmap makeGT . process Gt . map (fmap refLab))
+                                     . groundTruth $ mc
                     return mc { chords = c, groundTruth = gt } where
 
   -- Performs a series of pre-processing operations
