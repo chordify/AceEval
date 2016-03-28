@@ -16,7 +16,7 @@ module ACE.MIREX.Data  ( Collection (..)
 
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
-import Data.List               ( intercalate )
+-- import ACE.Evaluation.ChordEq  ( makeGT, RefLab )
 import Data.Char               ( toLower )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), splitDirectories, joinPath
@@ -44,7 +44,7 @@ data MChords    = MChords { collection  :: Collection
                           }
 
 instance Show MChords where
-  show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
+  show (MChords c y t i _cs _mgt) = unwords [show c, show y, t, show i]
 
 fromFileName :: FilePath -> (FilePath, Year, Collection, Team, Int, Format)
 fromFileName fp = case reverse . splitDirectories $ fp of
