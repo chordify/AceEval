@@ -148,6 +148,39 @@ readMChords' mh y c tm i gtfp fp =
      gt  <- readFile gtfp
      printPPLog mh show (preProcess . parseChords pGT) gt
 
+toMChord' :: Maybe Handle
+            -- ^ a possible Handle for routing the error messages
+          -> Maybe Year
+            -- ^ a possible MIREX 'Year'
+          -> Maybe Collection
+            -- ^ a possible MIREX 'Collection'
+          -> Team
+            -- ^ a team description
+          -> Int
+            -- ^ a song ID
+          -> [Timed RefLab]
+            -- ^ a groundtruth chord sequence
+          -> [Timed ChordLabel]
+            -- ^ a chord sequence to be evaluated
+            -- (by comparing it to the groundtruth )
+          -> IO MChords
+            -- ^ 'MChords' wrapper to be evaluated
+toMChord' = undefined
+-- toMChord' mh y c tm i gt cs = printPPLog mh show
+--                             . preProcess
+--                             $ MChord
+
+toMChord :: Maybe Handle
+            -- ^ a possible Handle for routing the error messages
+         -> [Timed RefLab]
+            -- ^ a groundtruth chord sequence
+         -> [Timed ChordLabel]
+            -- ^ a chord sequence to be evaluated
+            -- (by comparing it to the groundtruth )
+         -> IO MChords
+            -- ^ 'MChords' wrapper to be evaluated
+toMChord = undefined
+
 -- | Applies an evaluation function to an 'MChords'
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
 evaluate ef mc = case groundTruth mc of
