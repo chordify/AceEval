@@ -1,11 +1,16 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ACE.MIREX.IO  ( evaluateMChords
+module ACE.MIREX.IO  ( -- * Evaluating
+                       evaluateMChords
                      , evaluateMChordsVerb
                      , evaluateMirex
-                     , readMChords'
+                     , evaluate
+                       -- * Constructing MChords
                      , readMChords
+                     , readMChords'
+                     , toMChords
+                     , toMChords'
                      ) where
 
 import ACE.Parsers.ChordJSON
@@ -16,7 +21,7 @@ import ACE.Evaluation
 
 import HarmTrace.Base.Time   ( Timed (..) )
 import HarmTrace.Base.Chord  ( ChordLabel )
-import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
+import HarmTrace.Base.Parse  ( Parser )
 import Data.List             ( intercalate )
 import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
@@ -148,37 +153,37 @@ readMChords' mh y c tm i gtfp fp =
      gt  <- readFile gtfp
      printPPLog mh show (preProcess . parseChords pGT) gt
 
-toMChord' :: Maybe Handle
-            -- ^ a possible Handle for routing the error messages
-          -> Year
-            -- ^ a MIREX 'Year'
-          -> Collection
-            -- ^ a MIREX 'Collection'
-          -> Team
-            -- ^ a team description
-          -> Int
-            -- ^ a song ID
-          -> [Timed RefLab]
-            -- ^ a groundtruth chord sequence
-          -> [Timed ChordLabel]
-            -- ^ a chord sequence to be evaluated
-            -- (by comparing it to the groundtruth )
-          -> IO MChords
+toMChords' :: Maybe Handle
+           -- ^ a possible Handle for routing the error messages
+           -> Year
+           -- ^ a MIREX 'Year'
+           -> Collection
+           -- ^ a MIREX 'Collection'
+           -> Team
+           -- ^ a team description
+           -> Int
+           -- ^ a song ID
+           -> [Timed RefLab]
+           -- ^ a groundtruth chord sequence
+           -> [Timed ChordLabel]
+           -- ^ a chord sequence to be evaluated
+           -- (by comparing it to the groundtruth )
+           -> IO MChords
             -- ^ 'MChords' wrapper to be evaluated
--- toMChord' = undefined
-toMChord' mh y c tm i gt cs = printPPLog mh show preProcess
+
+toMChords' mh y c tm i gt cs = printPPLog mh show preProcess
                             $ MChords c y tm i cs (Just gt)
 
-toMChord :: Maybe Handle
-            -- ^ a possible Handle for routing the error messages
-         -> [Timed RefLab]
-            -- ^ a groundtruth chord sequence
-         -> [Timed ChordLabel]
-            -- ^ a chord sequence to be evaluated
-            -- (by comparing it to the groundtruth )
-         -> IO MChords
+toMChords :: Maybe Handle
+          -- ^ a possible Handle for routing the error messages
+          -> [Timed RefLab]
+          -- ^ a groundtruth chord sequence
+          -> [Timed ChordLabel]
+          -- ^ a chord sequence to be evaluated
+          -- (by comparing it to the groundtruth )
+          -> IO MChords
             -- ^ 'MChords' wrapper to be evaluated
-toMChord mh gt cs = toMChord' mh Other Unkown "A-Team" 1 gt cs
+toMChords mh gt cs = toMChords' mh Other Unkown "A-Team" 1 gt cs
 
 -- | Applies an evaluation function to an 'MChords'
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a

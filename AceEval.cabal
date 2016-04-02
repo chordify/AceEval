@@ -33,11 +33,11 @@ library
                        ACE.MIREX
                        ACE.MIREX.Data
                        ACE.MIREX.IO
-                       ACE.MIREX.PreProcessing
 
                        ACE.Parsers.ChordJSON
                        ACE.Parsers.ChordLab
-
+                       
+  other-modules:       ACE.MIREX.PreProcessing
 
   ghc-options:         -Wall
                        -O2
