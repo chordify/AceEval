@@ -6,7 +6,7 @@ module ACE.MIREX.PreProcessing ( Edit
 import ACE.MIREX.Data
 import ACE.Evaluation.ChordEq  ( refLab, makeGT )
 
-import HarmTrace.Base.Time     ( Timed (..), splitTimed, getEndTime, setData
+import HarmTrace.Base.Time     ( Timed (..), splitTimed, getEndTime
                                , offset, onset, duration, timed, concatTimed )
 import HarmTrace.Base.Chord    ( ChordLabel, Chord (..) )
 import Control.Monad.State     ( State, modify, runState )
@@ -46,7 +46,7 @@ data PPLog = PPLog Edit Collection Year String Int Source Double Double
 
 instance Show PPLog where
   show (PPLog e c y t i src on off) =
-    show e ++ intercalate " " [show c, show y, t, show i]
+    show e ++ unwords [show c, show y, t, show i]
            ++ show src ++ ": " ++ show on ++ " - " ++ show off
 
   showList l s = s ++ intercalate "\n" (map show l)

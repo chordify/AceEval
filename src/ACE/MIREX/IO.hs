@@ -150,10 +150,10 @@ readMChords' mh y c tm i gtfp fp =
 
 toMChord' :: Maybe Handle
             -- ^ a possible Handle for routing the error messages
-          -> Maybe Year
-            -- ^ a possible MIREX 'Year'
-          -> Maybe Collection
-            -- ^ a possible MIREX 'Collection'
+          -> Year
+            -- ^ a MIREX 'Year'
+          -> Collection
+            -- ^ a MIREX 'Collection'
           -> Team
             -- ^ a team description
           -> Int
@@ -165,10 +165,9 @@ toMChord' :: Maybe Handle
             -- (by comparing it to the groundtruth )
           -> IO MChords
             -- ^ 'MChords' wrapper to be evaluated
-toMChord' = undefined
--- toMChord' mh y c tm i gt cs = printPPLog mh show
---                             . preProcess
---                             $ MChord
+-- toMChord' = undefined
+toMChord' mh y c tm i gt cs = printPPLog mh show preProcess
+                            $ MChords c y tm i cs (Just gt)
 
 toMChord :: Maybe Handle
             -- ^ a possible Handle for routing the error messages
@@ -179,7 +178,7 @@ toMChord :: Maybe Handle
             -- (by comparing it to the groundtruth )
          -> IO MChords
             -- ^ 'MChords' wrapper to be evaluated
-toMChord = undefined
+toMChord mh gt cs = toMChord' mh Other Unkown "A-Team" 1 gt cs
 
 -- | Applies an evaluation function to an 'MChords'
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
