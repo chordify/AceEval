@@ -17,7 +17,7 @@ module ACE.MIREX.Data  ( Collection (..)
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
 import ACE.Evaluation.ChordEq  ( RefLab )
-import Data.Char               ( toLower )
+import Data.Char               ( toLower, isDigit )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), splitDirectories, joinPath
                                , takeExtension, dropExtensions )
@@ -60,7 +60,8 @@ fromFileName fp = case reverse . splitDirectories $ fp of
 -- Parses: chordmrx09000008.js, chords1234.js, audio1234.lab, 3456.lab
 getId :: String -> Int
 -- getId s = read . dropWhile (not . isDigit) . dropExtension $ s
-getId s = read . reverse . take 4 . reverse . dropExtensions $ s
+-- getId s = read . reverse . take 4 . reverse . dropExtensions $ s
+getId = read . reverse . dropWhile (not . isDigit) . reverse . dropWhile (not . isDigit) . dropExtensions
 
 toCollection :: String -> (Maybe Collection, String)
 toCollection s = case map toLower s of
