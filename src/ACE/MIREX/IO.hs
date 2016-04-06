@@ -78,7 +78,15 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> Maybe Team
                  -- ^ evaluates a specific team only, if set
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> IO ()
+              -> FilePath
+                 -- ^ a path to very specific directory structure:
+                 -- /path/to/year/collection/team/*
+                 -- where year and collections should be strings matching
+                 -- the parsers in 'ACE.MIREX.Data', the team can be any
+                 -- string. The filenames should follow the file name
+                 -- conventions as described in 'ACE.MIREX.Data'.
+                 -- e.g. /path/to/2013/Billboard2012/KO1
+              -> IO ()
 evaluateMirex ef af atf mtp mpp mh mteam dir =
    do let -- | Evaluates the submission of a single team
           -- doTeam :: Show c => Team -> IO c
