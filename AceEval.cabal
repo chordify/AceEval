@@ -36,7 +36,8 @@ library
 
                        ACE.Parsers.ChordJSON
                        ACE.Parsers.ChordLab
-                       
+                       ACE.Parsers.ChordChordify
+
   other-modules:       ACE.MIREX.PreProcessing
 
   ghc-options:         -Wall
