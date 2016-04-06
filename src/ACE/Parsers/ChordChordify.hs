@@ -14,7 +14,7 @@
 -- Chordify database
 --
 --------------------------------------------------------------------------------
-module ACE.Parsers.ChordSeqParser where
+module ACE.Parsers.ChordChordify where
 
 import HarmTrace.Base.Parse
 import HarmTrace.Base.Chord.Datatypes
