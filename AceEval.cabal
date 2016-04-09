@@ -14,7 +14,7 @@ cabal-version:       >=1.8
 library
   build-depends:       base >=4.8,
                        parseargs >=0.1,
-                       HarmTrace-Base ==1.4.1.0,
+                       HarmTrace-Base >=1.5.0,
                        directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
@@ -48,7 +48,7 @@ executable AceEval
   -- other-modules:
   build-depends:       base >=4.8,
                        parseargs >=0.1,
-                       HarmTrace-Base ==1.4.1.0,
+                       HarmTrace-Base >=1.5.0,
                        directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
@@ -64,7 +64,7 @@ executable AceEvalTest
   -- other-modules:
   build-depends:       base >=4.8,
                        parseargs >=0.1,
-                       HarmTrace-Base ==1.4.1.0,
+                       HarmTrace-Base >=1.5.0,
                        directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
