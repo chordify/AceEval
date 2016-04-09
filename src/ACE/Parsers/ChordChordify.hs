@@ -36,13 +36,13 @@ parseAnnotationData =  pListSep_ng pLineEnd pChordSegment
 
 -- | Parses the onset, offset and chordlabel on one line
 pChordSegment :: Parser (Timed ChordLabel)
-pChordSegment = timedData' <$> pBeat    <* pSym ';'
-                           <*> pChord   <* pSym ';'
-                           <*> pNumData <* pSym ';'
-                           <*> pNumData where
+pChordSegment = timedData' <$> pBeat      <* pSym ';'
+                           <*> pChord     <* pSym ';'
+                           <*> pDoubleRaw <* pSym ';'
+                           <*> pDoubleRaw where
 
   -- | convenient constructor for a 'Timed'
-  timedData' :: Beat -> ChordLabel -> NumData -> NumData -> Timed ChordLabel
+  timedData' :: Beat -> ChordLabel -> Float -> Float -> Timed ChordLabel
   timedData' b c on off = Timed c [BeatTime on b, BeatTime off (nextBeat Duple b)]
 
 
@@ -55,7 +55,3 @@ pBeat = One   <$ pSym '1'
     <|> Three <$ pSym '3'
     <|> Four  <$ pSym '4'
     <?> "Beat"
-
--- Parses a time stamp
-pNumData :: Parser NumData
-pNumData = pDoubleRaw

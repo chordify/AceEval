@@ -5,7 +5,7 @@ module ACE.Parsers.ChordJSON         ( pChordJSON )where
 
 import ACE.MIREX.Data
 import ACE.Evaluation.ChordEq        ( makeGT )
-import HarmTrace.Base.Time           ( Timed (..), BeatTime (..) )
+import HarmTrace.Base.Time           ( Timed, Timed' (..), BeatTime (..) )
 import HarmTrace.Base.Chord
 import HarmTrace.Base.Parse
 

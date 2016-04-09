@@ -6,7 +6,7 @@ module ACE.MIREX.PreProcessing ( Edit
 import ACE.MIREX.Data
 import ACE.Evaluation.ChordEq  ( refLab, makeGT )
 
-import HarmTrace.Base.Time     ( Timed (..), splitTimed, getEndTime
+import HarmTrace.Base.Time     ( Timed, Timed' (..), splitTimed, getEndTime
                                , offset, onset, duration, timed, concatTimed )
 import HarmTrace.Base.Chord    ( ChordLabel, Chord (..) )
 import Control.Monad.State     ( State, modify, runState )
@@ -42,7 +42,7 @@ instance Show Edit where
 
 -- | Pre-Processing logging: a data type that stores all kinds of information
 -- to trace back the performed edit operation
-data PPLog = PPLog Edit Collection Year String Int Source Double Double
+data PPLog = PPLog Edit Collection Year String Int Source Float Float
 
 instance Show PPLog where
   show (PPLog e c y t i src on off) =

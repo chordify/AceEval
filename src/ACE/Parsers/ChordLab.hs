@@ -40,16 +40,13 @@ pLabData =  pListSep_ng pLineEnd pChordLine <* pLineEnd
 
 -- | Parses the onset, offset and chordlabel on one line
 pChordLine :: Parser (Timed ChordLabel)
-pChordLine = timed' <$>  (pSpaceTab *> (pDoubleRaw <*  pSpaceTab))
-                    <*>                 pDoubleRaw <*  pSpaceTab
-                    <*>  pChord
-
+pChordLine =  f <$>  (pSpaceTab *> (pDoubleRaw <*  pSpaceTab))
+                <*>                 pDoubleRaw <*  pSpaceTab
+                <*>  pChord
+  where f x y z = timed z x y
 --------------------------------------------------------------------------------
 -- General Parsers and Utils
 --------------------------------------------------------------------------------
-
-timed' :: NumData -> NumData -> a -> Timed a
-timed' on off chrd = Timed chrd [Time on, Time off]
 
 pSpaceTab :: Parser [Char]
 pSpaceTab =  pMany (pSym ' ' <|> pSym '\t')

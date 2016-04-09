@@ -19,7 +19,7 @@ import ACE.MIREX.Data
 import ACE.MIREX.PreProcessing
 import ACE.Evaluation
 
-import HarmTrace.Base.Time   ( Timed (..) )
+import HarmTrace.Base.Time   ( Timed )
 import HarmTrace.Base.Chord  ( ChordLabel )
 import HarmTrace.Base.Parse  ( Parser )
 import Data.List             ( intercalate )
