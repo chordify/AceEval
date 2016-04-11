@@ -45,13 +45,3 @@ pChordSegment = timedData' <$> pBeat      <* pSym ';'
   timedData' :: Beat -> ChordLabel -> Float -> Float -> Timed ChordLabel
   timedData' b c on off = Timed c [BeatTime on b, BeatTime off (nextBeat Duple b)]
 
-
--- TODO : it would not hurt to move the functions below to HarmTrace-Base
--- because they are very general
--- | Parses a 'Beat'.
-pBeat :: Parser Beat
-pBeat = One   <$ pSym '1'
-    <|> Two   <$ pSym '2'
-    <|> Three <$ pSym '3'
-    <|> Four  <$ pSym '4'
-    <?> "Beat"
