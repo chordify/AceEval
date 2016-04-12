@@ -12,7 +12,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  build-depends:       base >=4.8,
+  build-depends:       base >=4.7,
                        parseargs >=0.1,
                        HarmTrace-Base ==1.4.1.0,
                        directory >=1.2,
@@ -45,7 +45,7 @@ library
 executable AceEval
   main-is:             Main.hs
   -- other-modules:
-  build-depends:       base >=4.8,
+  build-depends:       base >=4.7,
                        parseargs >=0.1,
                        HarmTrace-Base ==1.4.1.0,
                        directory >=1.2,
@@ -61,7 +61,7 @@ executable AceEval
 executable AceEvalTest
   main-is:             Test.hs
   -- other-modules:
-  build-depends:       base >=4.8,
+  build-depends:       base >=4.7,
                        parseargs >=0.1,
                        HarmTrace-Base ==1.4.1.0,
                        directory >=1.2,
