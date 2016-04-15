@@ -16,8 +16,8 @@ module ACE.MIREX.Data  ( Collection (..)
 
 import HarmTrace.Base.Time     ( Timed )
 import HarmTrace.Base.Chord    ( ChordLabel )
-import Data.List               ( intercalate )
-import Data.Char               ( toLower )
+import ACE.Evaluation.ChordEq  ( RefLab )
+import Data.Char               ( toLower, isDigit )
 import Text.Printf             ( printf )
 import System.FilePath         ( (</>), splitDirectories, joinPath
                                , takeExtension, dropExtensions )
@@ -40,11 +40,11 @@ data MChords    = MChords { collection  :: Collection
                           , team        :: String
                           , songID      :: Int
                           , chords      :: [Timed ChordLabel]
-                          , groundTruth :: Maybe [Timed ChordLabel]
+                          , groundTruth :: Maybe [Timed RefLab]
                           }
 
 instance Show MChords where
-  show (MChords c y t i _cs _mgt) = intercalate " " [show c, show y, t, show i]
+  show (MChords c y t i _cs _mgt) = unwords [show c, show y, t, show i]
 
 fromFileName :: FilePath -> (FilePath, Year, Collection, Team, Int, Format)
 fromFileName fp = case reverse . splitDirectories $ fp of
@@ -60,7 +60,8 @@ fromFileName fp = case reverse . splitDirectories $ fp of
 -- Parses: chordmrx09000008.js, chords1234.js, audio1234.lab, 3456.lab
 getId :: String -> Int
 -- getId s = read . dropWhile (not . isDigit) . dropExtension $ s
-getId s = read . reverse . take 4 . reverse . dropExtensions $ s
+-- getId s = read . reverse . take 4 . reverse . dropExtensions $ s
+getId = read . reverse . dropWhile (not . isDigit) . reverse . dropWhile (not . isDigit) . dropExtensions
 
 toCollection :: String -> (Maybe Collection, String)
 toCollection s = case map toLower s of

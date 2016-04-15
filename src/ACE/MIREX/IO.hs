@@ -1,11 +1,16 @@
 {-# OPTIONS_GHC -Wall          #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Rank2Types #-}
-module ACE.MIREX.IO  ( evaluateMChords
+module ACE.MIREX.IO  ( -- * Evaluating
+                       evaluateMChords
                      , evaluateMChordsVerb
                      , evaluateMirex
-                     , readMChords'
+                     , evaluate
+                       -- * Constructing MChords
                      , readMChords
+                     , readMChords'
+                     , toMChords
+                     , toMChords'
                      ) where
 
 import ACE.Parsers.ChordJSON
@@ -14,9 +19,9 @@ import ACE.MIREX.Data
 import ACE.MIREX.PreProcessing
 import ACE.Evaluation
 
-import HarmTrace.Base.Time   ( Timed (..) )
+import HarmTrace.Base.Time   ( Timed )
 import HarmTrace.Base.Chord  ( ChordLabel )
-import HarmTrace.Base.Parse  ( parseDataWithErrors, Parser )
+import HarmTrace.Base.Parse  ( Parser )
 import Data.List             ( intercalate )
 import Control.Monad         ( when )
 import Data.Maybe            ( isJust, fromJust )
@@ -73,7 +78,15 @@ evaluateMirex :: (Show b, Show c) => ([Timed RefLab] -> [Timed ChordLabel] -> a)
               -> Maybe Team
                  -- ^ evaluates a specific team only, if set
                  --TODO probably we don't need Year and Collection here
-              -> FilePath -> IO ()
+              -> FilePath
+                 -- ^ a path to very specific directory structure:
+                 -- /path/to/year/collection/team/*
+                 -- where year and collections should be strings matching
+                 -- the parsers in 'ACE.MIREX.Data', the team can be any
+                 -- string. The filenames should follow the file name
+                 -- conventions as described in 'ACE.MIREX.Data'.
+                 -- e.g. /path/to/2013/Billboard2012/KO1
+              -> IO ()
 evaluateMirex ef af atf mtp mpp mh mteam dir =
    do let -- | Evaluates the submission of a single team
           -- doTeam :: Show c => Team -> IO c
@@ -148,10 +161,42 @@ readMChords' mh y c tm i gtfp fp =
      gt  <- readFile gtfp
      printPPLog mh show (preProcess . parseChords pGT) gt
 
+toMChords' :: Maybe Handle
+           -- ^ a possible Handle for routing the error messages
+           -> Year
+           -- ^ a MIREX 'Year'
+           -> Collection
+           -- ^ a MIREX 'Collection'
+           -> Team
+           -- ^ a team description
+           -> Int
+           -- ^ a song ID
+           -> [Timed RefLab]
+           -- ^ a groundtruth chord sequence
+           -> [Timed ChordLabel]
+           -- ^ a chord sequence to be evaluated
+           -- (by comparing it to the groundtruth )
+           -> IO MChords
+            -- ^ 'MChords' wrapper to be evaluated
+
+toMChords' mh y c tm i gt cs = printPPLog mh show preProcess
+                            $ MChords c y tm i cs (Just gt)
+
+toMChords :: Maybe Handle
+          -- ^ a possible Handle for routing the error messages
+          -> [Timed RefLab]
+          -- ^ a groundtruth chord sequence
+          -> [Timed ChordLabel]
+          -- ^ a chord sequence to be evaluated
+          -- (by comparing it to the groundtruth )
+          -> IO MChords
+            -- ^ 'MChords' wrapper to be evaluated
+toMChords mh gt cs = toMChords' mh Other Unkown "A-Team" 1 gt cs
+
 -- | Applies an evaluation function to an 'MChords'
 evaluate :: ([Timed RefLab] -> [Timed ChordLabel] -> a) -> MChords -> a
 evaluate ef mc = case groundTruth mc of
-  (Just gt) -> ef (makeGT gt) (chords mc)
+  (Just gt) -> ef gt (chords mc)
   _   -> error "evaluate: I did not find a ground-truth and chord prediction"
 
 --------------------------------------------------------------------------------

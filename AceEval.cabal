@@ -1,5 +1,5 @@
 name:                AceEval
-version:             0.2.0.0
+version:             0.2.1.0
 synopsis:            Automatic Chord Extraction Evaluation
 -- description:
 license:             LGPL-3
@@ -14,7 +14,7 @@ cabal-version:       >=1.8
 library
   build-depends:       base >=4.7,
                        parseargs >=0.1,
-                       HarmTrace-Base ==1.4.1.0,
+                       HarmTrace-Base >=1.5.0,
                        directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
@@ -33,11 +33,12 @@ library
                        ACE.MIREX
                        ACE.MIREX.Data
                        ACE.MIREX.IO
-                       ACE.MIREX.PreProcessing
 
                        ACE.Parsers.ChordJSON
                        ACE.Parsers.ChordLab
+                       ACE.Parsers.ChordChordify
 
+  other-modules:       ACE.MIREX.PreProcessing
 
   ghc-options:         -Wall
                        -O2
@@ -47,7 +48,7 @@ executable AceEval
   -- other-modules:
   build-depends:       base >=4.7,
                        parseargs >=0.1,
-                       HarmTrace-Base ==1.4.1.0,
+                       HarmTrace-Base >=1.5.0,
                        directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,
@@ -63,7 +64,7 @@ executable AceEvalTest
   -- other-modules:
   build-depends:       base >=4.7,
                        parseargs >=0.1,
-                       HarmTrace-Base ==1.4.1.0,
+                       HarmTrace-Base >=1.5.0,
                        directory >=1.2,
                        filepath >=1.3,
                        mtl >=2.1,

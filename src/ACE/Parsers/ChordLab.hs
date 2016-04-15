@@ -7,6 +7,7 @@ module ACE.Parsers.ChordLab ( pLabMChords
                             ) where
 
 import ACE.MIREX.Data
+import ACE.Evaluation.ChordEq           ( makeGT )
 import HarmTrace.Base.Chord
 import HarmTrace.Base.Time
 import HarmTrace.Base.Parse.General
@@ -30,7 +31,7 @@ pLabMChords t i y c = (\x -> MChords (maybe Unkown id c)
 pGroundTruth :: MChords -> Parser MChords
 pGroundTruth mc = case groundTruth mc of
   Just _gt -> error "pGroundTruth: this MChord allready has a ground truth"
-  Nothing  -> (\x -> mc {groundTruth = Just x}) <$> pLabData
+  Nothing  -> (\x -> mc {groundTruth = Just (makeGT x)}) <$> pLabData
 
 -- | Parses a chord annotation.
 pLabData :: Parser [Timed ChordLabel]
@@ -39,16 +40,13 @@ pLabData =  pListSep_ng pLineEnd pChordLine <* pLineEnd
 
 -- | Parses the onset, offset and chordlabel on one line
 pChordLine :: Parser (Timed ChordLabel)
-pChordLine = timed' <$>  (pSpaceTab *> (pDoubleRaw <*  pSpaceTab))
-                    <*>                 pDoubleRaw <*  pSpaceTab
-                    <*>  pChord
-
+pChordLine =  f <$>  (pSpaceTab *> (pDoubleRaw <*  pSpaceTab))
+                <*>                 pDoubleRaw <*  pSpaceTab
+                <*>  pChord
+  where f x y z = timed z x y
 --------------------------------------------------------------------------------
 -- General Parsers and Utils
 --------------------------------------------------------------------------------
-
-timed' :: NumData -> NumData -> a -> Timed a
-timed' on off chrd = Timed chrd [Time on, Time off]
 
 pSpaceTab :: Parser [Char]
 pSpaceTab =  pMany (pSym ' ' <|> pSym '\t')
