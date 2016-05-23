@@ -18,6 +18,7 @@ module ACE.Evaluation.ChordEq (
       rootOnlyEq
     , bassOnlyEq
     , majMinEq
+    , majMinDomEq
     , triadEq
     , mirex2010
     , chordClassEq
@@ -29,9 +30,9 @@ module ACE.Evaluation.ChordEq (
 
 import ACE.Evaluation.EqIgnore
 import ACE.Evaluation.ChordClass
-  
-import HarmTrace.Base.Time 
-import HarmTrace.Base.Chord 
+
+import HarmTrace.Base.Time
+import HarmTrace.Base.Chord
 
 import Data.IntSet               ( IntSet, size, intersection, member )
 
@@ -49,7 +50,7 @@ instance Show RefLab where
 makeGT :: [Timed ChordLabel] -> [Timed RefLab]
 makeGT = map (fmap RefLab)
 
--- unWrapGT :: [Timed RefLab] -> [Timed ChordLabel] 
+-- unWrapGT :: [Timed RefLab] -> [Timed ChordLabel]
 -- unWrapGT = map (fmap refLab)
 
 rootOnlyEq :: RefLab -> ChordLabel -> EqIgnore
@@ -65,17 +66,17 @@ bassOnlyEq gt test = chordCompare (\_ _ -> Equal) bassEq gt test where
 rootEq :: Root -> Root -> EqIgnore
 rootEq a b = toPitchClass a ==* toPitchClass b
 
--- | Compares a ground-truth 'ChordLabel' (first argument) to a test 
--- 'ChordLabel' (second argument) and returns True if the 'Root's of 
+-- | Compares a ground-truth 'ChordLabel' (first argument) to a test
+-- 'ChordLabel' (second argument) and returns True if the 'Root's of
 -- the chord's are equal, and both chords are major or minor
 --
--- N.B. This equality function is non-associative because comparing a 
+-- N.B. This equality function is non-associative because comparing a
 -- non-triadic chord is ignored in the evaluation while a non-triadic
 -- chord in a evaluated annotation should just be qualified not equal
 -- (because if also machine annotated non-triadic chords would be ignored
--- automatic transcription evaluation could be biased by outputting 
--- non-triadic chords at uncertain positions). 
--- 
+-- automatic transcription evaluation could be biased by outputting
+-- non-triadic chords at uncertain positions).
+--
 -- >>> majMinEq (RefLab $ Chord (Note Nothing A) Sus4 [] 0 0) (Chord (Note Nothing A) Maj [] 0 0)
 -- >>> Ignore
 --
@@ -84,7 +85,7 @@ rootEq a b = toPitchClass a ==* toPitchClass b
 --
 majMinEq :: RefLab -> ChordLabel -> EqIgnore
 majMinEq gt test = chordCompare rootEq majMin gt test
-   
+
   -- ignore the NoClass and only return True in case of maj/maj and min/min
   where majMin :: RefLab -> ChordLabel -> EqIgnore
         majMin x y = case ( toMajMin . toTriad $ refLab x
@@ -98,6 +99,32 @@ majMinEq gt test = chordCompare rootEq majMin gt test
                        -- cannot happen
                        _ -> error "majMin: unexpected chord class"
 
+majMinDomEq :: RefLab -> ChordLabel -> EqIgnore
+majMinDomEq gt test = chordCompare rootEq majMinDom gt test
+
+  -- ignore the NoClass and only return True in case of maj/maj, min/min
+  -- and dom/dom
+  where majMinDom :: RefLab -> ChordLabel -> EqIgnore
+        majMinDom x y = case ( toMajMin . toTriad $ refLab x
+                             , toMajMin $ toTriad          y ) of
+                         (MajClass, MajClass) -> Equal
+                         (MinClass, MinClass) -> Equal
+                         (DomClass, DomClass) -> Equal
+
+                         (MajClass, MinClass) -> NotEq
+                         (MajClass, DomClass) -> NotEq
+
+                         (MinClass, MajClass) -> NotEq
+                         (MinClass, DomClass) -> NotEq
+
+                         (DomClass, MajClass) -> NotEq
+                         (DomClass, MinClass) -> NotEq
+
+                         (NoClass , _       ) -> Ignore
+                         (_       , NoClass ) -> Ignore
+
+                         -- cannot happen
+                         _ -> error "majMinDom: unexpected chord class"
 
 -- | Returns True if both 'ChordLabel's are equal at the triad level: they are
 -- either moth major or both minor. "None Chords" match only with other "None
@@ -109,14 +136,14 @@ triadEq gt test = chordCompare rootEq triadEqI gt test where
   triadEqI (RefLab x) y = case (toTriad x, toTriad y) of
      (NoTriad, _      ) -> susEq x y
      (_      , NoTriad) -> NotEq
-     (tx     , ty     ) -> tx ==* ty 
-                   
+     (tx     , ty     ) -> tx ==* ty
+
   susEq :: ChordLabel -> ChordLabel -> EqIgnore
   susEq a b | isSus2 a     = toEqIgnore (isSus2 b)
             | isSus4 a     = toEqIgnore (isSus4 b)
             | otherwise    = Ignore
-            
-  
+
+
 chordClassEq :: RefLab -> ChordLabel -> CCEval EqIgnore
 chordClassEq rfl test = case (refLab rfl, test) of
    (NoChord,    NoChord   ) -> toCCEval Equal
@@ -126,17 +153,17 @@ chordClassEq rfl test = case (refLab rfl, test) of
    -- we determine whether the ground truth chord is in the input domain
    -- by comparing it to itself. for instance, if a G:dim is not in the input
    -- domain comparing it to G:dim will yield an Ignore (an not an NotEq)
-   (gt        , UndefChord) -> let cc = toChordClass gt 
-                               in fmap (NotEq &&*) (compareCC cc cc) 
-   (gt        , NoChord   ) -> let cc = toChordClass gt 
+   (gt        , UndefChord) -> let cc = toChordClass gt
+                               in fmap (NotEq &&*) (compareCC cc cc)
+   (gt        , NoChord   ) -> let cc = toChordClass gt
                                in fmap (NotEq &&*) (compareCC cc cc)
    (gt        , _         ) -> compareCC (toChordClass gt) (toChordClass test)
 
-  
+
 -- compares the 'NoChord' and 'UndefChord' cases, such that this does not have
 -- to be replicated in all Eq's
-chordCompare :: (Root -> Root -> EqIgnore) 
-             -> (RefLab -> ChordLabel -> EqIgnore) 
+chordCompare :: (Root -> Root -> EqIgnore)
+             -> (RefLab -> ChordLabel -> EqIgnore)
              ->  RefLab -> ChordLabel -> EqIgnore
 chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord,    NoChord   ) -> Equal
@@ -146,8 +173,8 @@ chordCompare rEq cEq rf t = case (refLab rf, t) of
                              (NoChord   , _         ) -> NotEq
                              (gt, _) ->   chordRoot gt `rEq` chordRoot t
                                      &&*            rf `cEq`           t
-                 
-                 
+
+
 mirex2010 :: RefLab -> ChordLabel -> EqIgnore
 mirex2010 (RefLab NoChord)    NoChord    = Equal
 mirex2010 (RefLab UndefChord) UndefChord = Equal -- Ignore
@@ -155,19 +182,19 @@ mirex2010 (RefLab UndefChord) _          = NotEq -- Ignore
 mirex2010 _                   UndefChord = NotEq
 mirex2010 (RefLab NoChord)    _          = NotEq
 mirex2010 _                   NoChord    = NotEq
-mirex2010 (RefLab gt)         test       = 
+mirex2010 (RefLab gt)         test       =
   let bassMatch :: IntSet -> ChordLabel -> Int
       bassMatch _ (Chord _ _ _ (Note Nat I1)) = 0
       bassMatch is c | bassPC c `member` is   = 1
                      | otherwise              = 0
-                   
+
       gtpc  = pc . toPitchClasses $ gt
       tstpc = pc . toPitchClasses $ test
-      
+
       i     = gtpc `intersection` tstpc
       p     = size i
       p' = p + bassMatch gtpc test + bassMatch tstpc gt
-      
+
   in case (chordShorthand gt, chordShorthand test) of
       (Aug, _  ) -> p' >=* 2
       (Dim, _  ) -> p' >=* 2
