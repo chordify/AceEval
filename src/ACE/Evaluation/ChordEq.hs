@@ -99,14 +99,19 @@ majMinEq gt test = chordCompare rootEq majMin gt test
                        -- cannot happen
                        _ -> error "majMin: unexpected chord class"
 
+-- | Similar to 'majMin' but then we also assume that the evaluate algorithm
+-- uses a diciontary of 'Maj', 'Min', and 'Dom'. These labels are compared to
+-- the grountruth might contain more complex chords which are subsequently
+-- reduced using the function 'toClassType'
+
 majMinDomEq :: RefLab -> ChordLabel -> EqIgnore
 majMinDomEq gt test = chordCompare rootEq majMinDom gt test
 
   -- ignore the NoClass and only return True in case of maj/maj, min/min
-  -- and dom/dom
+  -- and dom/dom.
   where majMinDom :: RefLab -> ChordLabel -> EqIgnore
-        majMinDom x y = case ( toMajMin . toTriad $ refLab x
-                             , toMajMin $ toTriad          y ) of
+        majMinDom x y = case ( toClassType  $ refLab x
+                             , toClassType           y ) of
                          (MajClass, MajClass) -> Equal
                          (MinClass, MinClass) -> Equal
                          (DomClass, DomClass) -> Equal
@@ -120,10 +125,13 @@ majMinDomEq gt test = chordCompare rootEq majMinDom gt test
                          (DomClass, MajClass) -> NotEq
                          (DomClass, MinClass) -> NotEq
 
+                         (DimClass, _       ) -> Ignore
+                         -- error will thrown if the evaluated algo throws
+                         -- a dim chord.
+
                          (NoClass , _       ) -> Ignore
                          (_       , NoClass ) -> Ignore
 
-                         -- cannot happen
                          _ -> error "majMinDom: unexpected chord class"
 
 -- | Returns True if both 'ChordLabel's are equal at the triad level: they are
