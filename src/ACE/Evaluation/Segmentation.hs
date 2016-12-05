@@ -19,20 +19,21 @@ import HarmTrace.Base.Chord
 import HarmTrace.Base.Time
 
 import Text.Printf               ( printf )
-import Data.List                 ( genericLength )
+import Data.List                 ( genericLength, sort, group )
 
 data SegEval a = SegEval { underSeg :: a -- under segmentation score 1- d(gt,test)
                          , overSeg  :: a -- over  segmentation score 1- d(test,gt)
                          , segScore :: a -- the final segmenation score (min of the above)
+                         , chaosScore :: a -- How chaotic are the chords? Lowe is better here.
                          } deriving (Eq, Functor)
 
 instance Show a => Show (SegEval a) where
-  show (SegEval u o l) = unwords . map show $ [u,o,l]
+  show (SegEval u o l c) = unwords . map show $ [u,o,l,c]
 
 sequenceSegEval :: [SegEval a] -> SegEval [a]
-sequenceSegEval = foldr step (SegEval [] [] []) where
+sequenceSegEval = foldr step (SegEval [] [] [] []) where
   step :: SegEval b -> SegEval [b] -> SegEval [b]
-  step (SegEval u o l) (SegEval us os ls) = SegEval (u:us) (o:os) (l:ls)
+  step (SegEval u o l c) (SegEval us os ls cs) = SegEval (u:us) (o:os) (l:ls) (c:cs)
 
 
 -- teamSegmentation :: (SegEval Double -> Double) -> [SegEval Double] -> Double
@@ -40,12 +41,13 @@ sequenceSegEval = foldr step (SegEval [] [] []) where
 
 reportSegment :: [SegEval Double] -> IO ()
 reportSegment se =
-  do let (SegEval us os mxs) = fmap average . sequenceSegEval $ se
+  do let (SegEval us os mxs cs) = fmap average . sequenceSegEval $ se
 
      putStrLn  "================================================"
      putStrLn ("under segmentation          : " ++ show us )
      putStrLn ("over segmentation           : " ++ show os )
-     putStrLn ("average segmentation quality: " ++ show mxs ++ "\n")
+     putStrLn ("average segmentation quality: " ++ show mxs)
+     putStrLn ("chaos score                 : " ++ show cs ++ "\n" )
 
 -- csvSegment :: [SegEval Double] -> IO ()
 -- csvSegment se =
@@ -59,7 +61,8 @@ segmentEval gt test =
             / realToFrac (getEndTime gt))
       over  = 1 - (sum (hammingDist' durAllButMax test csGt )
             / realToFrac (getEndTime test))
-  in under `seq` over `seq` SegEval under over (min under over)
+      chaos = chiSquare (createHistogram gt) (createHistogram test)
+  in under `seq` over `seq` chaos `seq` SegEval under over (min under over) chaos
 
 hamDistUnderSegVerb :: [Timed RefLab] -> [Timed ChordLabel] -> IO Double
 hamDistUnderSegVerb gt test = hammingDistVerb gt test
@@ -126,6 +129,28 @@ hammingDist' _ []  _ = error "hammingDist': comparing sequences of different len
 hammingDist' _ _  [] = error "hammingDist': comparing sequences of different lengths"
 hammingDist' mxf (g:gt) tst = mxf g t : hammingDist' mxf gt ts
     where  (t,ts) = span (\x -> offset x <= offset g) tst
+
+--------------------------------------------------------------------------------
+-- Histogram comparison for chaos score
+--------------------------------------------------------------------------------
+
+type Histogram = [(Int,Int)]
+
+createHistogram :: Eq a => [Timed a] -> Histogram
+createHistogram = map (\x -> (head x, length x)) . group . sort . beatLens where
+  beatLens :: Eq a => [Timed a] -> [Int]
+  beatLens [] = []
+  beatLens (x:xs) = let (h,t) = span ((== getData x) . getData) xs
+                    in  (1 + length h) : beatLens t
+
+chiSquare :: Histogram -> Histogram -> Double
+chiSquare [] h2 = fromIntegral $ sum $ map snd h2
+chiSquare h1 [] = chiSquare [] h1
+chiSquare fh1@((l1,c1):h1) fh2@((l2,c2):h2)
+  | l1 == l2  = ((fromIntegral $ c1 - c2) ** 2 / (fromIntegral $ c1 + c2)) + chiSquare h1 h2
+  | l1 <  l2  = fromIntegral c1 + chiSquare h1 fh2
+  | otherwise = fromIntegral c2 + chiSquare fh1 h2
+
 
 --------------------------------------------------------------------------------
 -- Utilities (move to HarmTrace.Base.Time???)
